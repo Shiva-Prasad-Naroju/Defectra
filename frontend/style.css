@@ -640,7 +640,7 @@ a {
 .hero-scroll-hint__mouse {
   width: 20px;
   height: 32px;
-  border: 1.5px solid #9ca3af;
+  border: 1px solid #070707;
   border-radius: 999px;
   display: grid;
   justify-items: center;
@@ -1686,17 +1686,17 @@ a {
 .site-footer__social-btn {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 40%;
   border: none;
   color: #ffffff;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .site-footer__social-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
 .site-footer__social-btn:hover {
