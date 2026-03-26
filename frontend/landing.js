@@ -93,22 +93,30 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleScrollHint();
   }
 
-  // How it works stepper scroll-reveal
-  const revealSteps = document.querySelectorAll(".m-stepper__step--reveal");
-  if (revealSteps.length && "IntersectionObserver" in window) {
+  const setupReveal = (selector) => {
+    const items = document.querySelectorAll(selector);
+    if (!items.length) return;
+    if (!("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("is-visible");
-            observer.unobserve(e.target);
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.15 }
     );
-    revealSteps.forEach((step) => observer.observe(step));
-  } else {
-    revealSteps.forEach((step) => step.classList.add("is-visible"));
-  }
+
+    items.forEach((item) => observer.observe(item));
+  };
+
+  // Section reveal animations
+  setupReveal(".m-stepper__step--reveal");
+  setupReveal(".benefit-card--reveal");
 });
