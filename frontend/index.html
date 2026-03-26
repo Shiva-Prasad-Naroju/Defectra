@@ -126,11 +126,13 @@
           <h2 id="how-heading">How It Works</h2>
           <p class="landing-section-lead">Three steps from upload to insight.</p>
         </div>
-        <div class="steps-flow">
-          <article class="step-card step-card--reveal" style="--reveal-i:0">
-            <span class="step-card__num" aria-hidden="true">01</span>
-            <div class="step-card__icon-wrap">
-              <svg class="step-card__icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <div class="m-stepper">
+          <div class="m-stepper__track" aria-hidden="true"></div>
+
+          <div class="m-stepper__step m-stepper__step--reveal" style="--reveal-i:0">
+            <div class="m-stepper__circle">1</div>
+            <div class="m-stepper__icon">
+              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <rect x="6" y="8" width="28" height="24" rx="3" stroke="#334155" stroke-width="1.4"/>
                 <rect x="6" y="8" width="28" height="6" rx="3" fill="#eff6ff" stroke="#93c5fd" stroke-width="0.8"/>
                 <circle cx="10" cy="11" r="1" fill="#f87171"/>
@@ -141,46 +143,32 @@
                 <rect x="10" y="28" width="20" height="2" rx="1" fill="#e2e8f0"/>
               </svg>
             </div>
-            <h3 class="step-card__title">Upload Image</h3>
-            <p class="step-card__desc">Drop in a room or site capture from your phone or desktop.</p>
-          </article>
-
-          <div class="step-connector" aria-hidden="true">
-            <svg class="step-connector__svg" viewBox="0 0 48 24" fill="none">
-              <path d="M0 12h40" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3" class="step-connector__line"/>
-              <path d="M36 6l6 6-6 6" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <h3 class="m-stepper__title">Upload Image</h3>
+            <p class="m-stepper__desc">Drop in a room or site capture from your phone or desktop.</p>
           </div>
 
-          <article class="step-card step-card--featured step-card--reveal" style="--reveal-i:1">
-            <span class="step-card__num" aria-hidden="true">02</span>
-            <div class="step-card__icon-wrap">
-              <svg class="step-card__icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <div class="m-stepper__step m-stepper__step--reveal" style="--reveal-i:1">
+            <div class="m-stepper__circle">2</div>
+            <div class="m-stepper__icon">
+              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <circle cx="20" cy="20" r="14" stroke="#e2e8f0" stroke-width="1.2"/>
-                <circle cx="20" cy="20" r="14" stroke="#ed1c24" stroke-width="2" stroke-dasharray="22 66" stroke-linecap="round" class="ai-spin"/>
-                <circle cx="20" cy="20" r="9" stroke="#2563eb" stroke-width="1.2" stroke-dasharray="3 2.5" opacity="0.5"/>
-                <circle cx="20" cy="20" r="4.5" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
-                <circle cx="20" cy="20" r="2" fill="#2563eb"/>
+                <circle cx="20" cy="20" r="14" stroke="#1a73e8" stroke-width="2" stroke-dasharray="22 66" stroke-linecap="round" class="ai-spin"/>
+                <circle cx="20" cy="20" r="9" stroke="#1a73e8" stroke-width="1.2" stroke-dasharray="3 2.5" opacity="0.5"/>
+                <circle cx="20" cy="20" r="4.5" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1"/>
+                <circle cx="20" cy="20" r="2" fill="#1a73e8"/>
                 <path d="M8 20h3M29 20h3" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
                 <path d="M20 8v3M20 29v3" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
-                <path d="M10 11l2 2M28 29l2 2M28 11l-2 2M10 29l-2 2" stroke="#cbd5e1" stroke-width="0.8" stroke-linecap="round"/>
+                <path d="M10 11l2 2M28 29l2 2M28 11l-2 2M10 29l-2 2" stroke="#dadce0" stroke-width="0.8" stroke-linecap="round"/>
               </svg>
             </div>
-            <h3 class="step-card__title">AI Analysis</h3>
-            <p class="step-card__desc">Our model segments and evaluates the scene for defects and risks.</p>
-          </article>
-
-          <div class="step-connector" aria-hidden="true">
-            <svg class="step-connector__svg" viewBox="0 0 48 24" fill="none">
-              <path d="M0 12h40" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3" class="step-connector__line"/>
-              <path d="M36 6l6 6-6 6" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <h3 class="m-stepper__title">AI Analysis</h3>
+            <p class="m-stepper__desc">Our model segments and evaluates the scene for defects and risks.</p>
           </div>
 
-          <article class="step-card step-card--reveal" style="--reveal-i:2">
-            <span class="step-card__num" aria-hidden="true">03</span>
-            <div class="step-card__icon-wrap">
-              <svg class="step-card__icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <div class="m-stepper__step m-stepper__step--reveal" style="--reveal-i:2">
+            <div class="m-stepper__circle">3</div>
+            <div class="m-stepper__icon">
+              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <rect x="5" y="6" width="30" height="28" rx="3" stroke="#334155" stroke-width="1.4"/>
                 <path d="M5 13h30" stroke="#e2e8f0" stroke-width="1"/>
                 <rect x="9" y="16" width="11" height="8" rx="1.5" fill="#eff6ff" stroke="#93c5fd" stroke-width="0.8"/>
@@ -195,9 +183,9 @@
                 <path d="M30 30l1.5 1.5 3-3.5" stroke="#22c55e" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <h3 class="step-card__title">View Results</h3>
-            <p class="step-card__desc">Review overlays, severity, and next steps in the dashboard.</p>
-          </article>
+            <h3 class="m-stepper__title">View Results</h3>
+            <p class="m-stepper__desc">Review overlays, severity, and next steps in the dashboard.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -208,74 +196,77 @@
           <h2 id="benefits-heading">What You Get Instantly</h2>
           <p class="landing-section-lead">Everything you need to turn site photos into actionable inspection data.</p>
         </div>
-        <div class="benefits-grid">
-          <article class="benefit-card">
-            <div class="benefit-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Wall with crack -->
-                <rect x="6" y="6" width="32" height="32" rx="2" stroke="#334155" stroke-width="1.3"/>
-                <path d="M6 14h32M6 22h32M6 30h32" stroke="#e2e8f0" stroke-width="0.7"/>
-                <path d="M16 6v32M28 6v32" stroke="#e2e8f0" stroke-width="0.7"/>
-                <path d="M22 8l-2 5 3 3-3 5 2 5-2 5 1 5" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="crack-path"/>
-                <!-- Detection circle -->
-                <circle cx="21" cy="22" r="7" stroke="#dc2626" stroke-width="1" stroke-dasharray="2.5 1.5" opacity="0.6" class="detect-ring"/>
-              </svg>
-            </div>
-            <h3>Detect Defects</h3>
-            <p>Spot cracks, moisture, misalignment, and other issues from standard progress photos.</p>
-          </article>
-          <article class="benefit-card">
-            <div class="benefit-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Gauge / severity meter -->
-                <path d="M8 32a16 16 0 0128 0" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/>
-                <path d="M8 32a16 16 0 0112.5-15.5" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
-                <path d="M20.5 16.5a16 16 0 017 0" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
-                <path d="M27.5 16.5a16 16 0 018.5 15.5" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
-                <!-- Needle -->
-                <line x1="22" y1="31" x2="30" y2="20" stroke="#334155" stroke-width="1.5" stroke-linecap="round" class="gauge-needle"/>
-                <circle cx="22" cy="31" r="2.5" fill="#334155"/>
-              </svg>
-            </div>
-            <h3>Severity Analysis</h3>
-            <p>Understand how serious each finding is so you can prioritize fixes and avoid rework.</p>
-          </article>
-          <article class="benefit-card">
-            <div class="benefit-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Brain / AI chip -->
-                <rect x="10" y="10" width="24" height="24" rx="4" stroke="#2563eb" stroke-width="1.4"/>
-                <rect x="15" y="15" width="14" height="14" rx="2" stroke="#2563eb" stroke-width="1.2" fill="#eff6ff"/>
-                <!-- Circuit traces -->
-                <path d="M10 18h-4M10 26h-4M38 18h-4M38 26h-4" stroke="#93c5fd" stroke-width="1.2" stroke-linecap="round"/>
-                <path d="M18 10v-4M26 10v-4M18 38v-4M26 38v-4" stroke="#93c5fd" stroke-width="1.2" stroke-linecap="round"/>
-                <!-- AI symbol -->
-                <circle cx="22" cy="22" r="3" stroke="#2563eb" stroke-width="1.2" class="ai-core-pulse"/>
-                <path d="M22 19v-2M22 27v-2M19 22h-2M27 22h-2" stroke="#2563eb" stroke-width="1" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <h3>AI Insights</h3>
-            <p>Clear summaries and context from the model—not just raw pixels—so teams align faster.</p>
-          </article>
-          <article class="benefit-card">
-            <div class="benefit-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Clipboard report -->
-                <rect x="10" y="6" width="24" height="32" rx="2" stroke="#334155" stroke-width="1.4"/>
-                <rect x="16" y="3" width="12" height="6" rx="1.5" stroke="#475569" stroke-width="1.2" fill="#f8fafc"/>
-                <path d="M15 16h14M15 20h14M15 24h10" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
-                <!-- Chart bars -->
-                <rect x="15" y="28" width="4" height="6" rx="0.5" fill="#2563eb" opacity="0.3"/>
-                <rect x="21" y="26" width="4" height="8" rx="0.5" fill="#2563eb" opacity="0.45"/>
-                <rect x="27" y="29" width="4" height="5" rx="0.5" fill="#2563eb" opacity="0.25"/>
-                <!-- Download arrow -->
-                <path d="M34 28l-3 4-3-4" stroke="#2563eb" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" class="download-bounce"/>
-                <path d="M31 32v-8" stroke="#2563eb" stroke-width="1.3" stroke-linecap="round" class="download-bounce"/>
-              </svg>
-            </div>
-            <h3>Export Reports</h3>
-            <p>Package results for stakeholders, compliance, or your own records in one place.</p>
-          </article>
+        <div class="showcase" id="feature-showcase">
+          <div class="showcase__track">
+            <article class="showcase__card" data-accent="#dc2626">
+              <div class="showcase__progress" aria-hidden="true"><span class="showcase__bar"></span></div>
+              <div class="showcase__icon">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <rect x="6" y="6" width="36" height="36" rx="3" stroke="#334155" stroke-width="1.4"/>
+                  <path d="M6 16h36M6 26h36M6 36h36" stroke="#e2e8f0" stroke-width="0.7"/>
+                  <path d="M18 6v36M30 6v36" stroke="#e2e8f0" stroke-width="0.7"/>
+                  <path d="M24 9l-3 7 4 4-4 6 3 7-3 6 2 6" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="showcase__crack"/>
+                  <circle cx="24" cy="24" r="9" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.5" class="showcase__ring"/>
+                </svg>
+              </div>
+              <h3 class="showcase__title">Detect Defects</h3>
+              <p class="showcase__desc">Spot cracks, moisture, and misalignment from standard site photos.</p>
+              <span class="showcase__stat">98% accuracy</span>
+            </article>
+
+            <article class="showcase__card" data-accent="#eab308">
+              <div class="showcase__progress" aria-hidden="true"><span class="showcase__bar"></span></div>
+              <div class="showcase__icon">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <path d="M8 36a18 18 0 0132 0" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M8 36a18 18 0 0114-17.5" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M22 18.5a18 18 0 018 0" stroke="#eab308" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M30 18.5a18 18 0 0110 17.5" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+                  <line x1="24" y1="34" x2="33" y2="22" stroke="#202124" stroke-width="2" stroke-linecap="round" class="showcase__needle"/>
+                  <circle cx="24" cy="34" r="3" fill="#202124"/>
+                </svg>
+              </div>
+              <h3 class="showcase__title">Severity Analysis</h3>
+              <p class="showcase__desc">Prioritize fixes with Low, Medium, High classifications and context.</p>
+              <span class="showcase__stat">3 severity levels</span>
+            </article>
+
+            <article class="showcase__card" data-accent="#1a73e8">
+              <div class="showcase__progress" aria-hidden="true"><span class="showcase__bar"></span></div>
+              <div class="showcase__icon">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <rect x="10" y="10" width="28" height="28" rx="6" stroke="#1a73e8" stroke-width="1.6"/>
+                  <rect x="16" y="16" width="16" height="16" rx="3" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.2"/>
+                  <circle cx="24" cy="24" r="4" stroke="#1a73e8" stroke-width="1.4" class="showcase__pulse"/>
+                  <circle cx="24" cy="24" r="1.5" fill="#1a73e8"/>
+                  <path d="M10 20H5M10 28H5M43 20h-5M43 28h-5" stroke="#93c5fd" stroke-width="1.4" stroke-linecap="round"/>
+                  <path d="M20 10V5M28 10V5M20 43v-5M28 43v-5" stroke="#93c5fd" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3 class="showcase__title">AI Insights</h3>
+              <p class="showcase__desc">Plain-language summaries so teams align faster on what needs attention.</p>
+              <span class="showcase__stat">Instant reports</span>
+            </article>
+
+            <article class="showcase__card" data-accent="#22c55e">
+              <div class="showcase__progress" aria-hidden="true"><span class="showcase__bar"></span></div>
+              <div class="showcase__icon">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <rect x="12" y="6" width="24" height="36" rx="3" stroke="#334155" stroke-width="1.4"/>
+                  <rect x="18" y="3" width="12" height="6" rx="3" fill="#f8fafc" stroke="#d1d5db" stroke-width="1"/>
+                  <path d="M17 18h14M17 22h14M17 26h10" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
+                  <rect x="17" y="31" width="5" height="7" rx="1" fill="#22c55e" opacity="0.35"/>
+                  <rect x="24" y="28" width="5" height="10" rx="1" fill="#22c55e" opacity="0.55"/>
+                  <rect x="31" y="30" width="5" height="8" rx="1" fill="#22c55e" opacity="0.4"/>
+                  <circle cx="38" cy="38" r="7" fill="#22c55e"/>
+                  <path d="M35 38l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h3 class="showcase__title">Export Reports</h3>
+              <p class="showcase__desc">Package results for stakeholders — download PDF or share a live link.</p>
+              <span class="showcase__stat">1-click export</span>
+            </article>
+          </div>
         </div>
       </div>
     </section>
