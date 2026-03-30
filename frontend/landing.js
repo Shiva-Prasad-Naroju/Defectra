@@ -167,43 +167,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ── Section Spotlight ──
-  const allSections = document.querySelectorAll(
-    ".hero-section, .landing-section, .site-footer"
-  );
-  let spotlightTimer = null;
-
-  const clearSpotlight = () => {
-    clearTimeout(spotlightTimer);
-    document.body.classList.remove("has-spotlight");
-    allSections.forEach((s) => s.classList.remove("is-spotlighted"));
-  };
-
-  const applySpotlight = (targetId) => {
-    const target = document.getElementById(targetId);
-    if (!target) return;
-
-    clearSpotlight();
-
-    // Activate immediately
-    document.body.classList.add("has-spotlight");
-    target.classList.add("is-spotlighted");
-
-    // Auto-clear after 1s
-    spotlightTimer = setTimeout(clearSpotlight, 1000);
-  };
-
-  navLinks?.querySelectorAll("a[href^='#']").forEach((link) => {
-    link.addEventListener("click", () => {
-      const id = link.getAttribute("href").slice(1);
-      if (id) applySpotlight(id);
-    });
-  });
-
-  // Dismiss on click anywhere outside nav
-  document.addEventListener("click", (e) => {
-    if (!document.body.classList.contains("has-spotlight")) return;
-    if (e.target.closest("#navbar")) return;
-    clearSpotlight();
-  });
 });

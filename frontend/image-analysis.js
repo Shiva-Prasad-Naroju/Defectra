@@ -4,18 +4,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const stageResults = document.getElementById("stage-results");
   const uploadZone = document.getElementById("upload-zone");
   const imageInput = document.getElementById("image-input");
-  const addImageBtn = document.getElementById("add-image-btn");
+  const cameraInput = document.getElementById("camera-input");
+  const cameraBtn = document.getElementById("camera-btn");
   const readyPreview = document.getElementById("ready-preview");
+  const processingOverlay = document.getElementById("processing-overlay");
+  const processingStatus = document.getElementById("processing-status");
   const resultOriginal = document.getElementById("result-original");
+  const resultHeadline = document.getElementById("result-headline");
+  const resultSummary = document.getElementById("result-summary");
   const runAnalysisBtn = document.getElementById("run-analysis-btn");
   const cancelReadyBtn = document.getElementById("cancel-ready-btn");
   const analyseMoreBtn = document.getElementById("analyse-more-btn");
 
+  const PROCESSING_MESSAGES = [
+    "Scanning for defects…",
+    "Mapping surfaces…",
+    "Building insight…",
+    "Preparing summary…",
+  ];
+
+  const DEMO_HEADLINE = "Structural risk detected along the upper joint.";
+  const DEMO_SUMMARY =
+    "Crack-like patterns appear along the upper joint with additional surface variation in the left field. Review highlighted regions on your photo before scheduling repairs. Full segmentation will connect when your model is live.";
+
   let currentDataUrl = "";
+  let processingTimer = null;
+  let messageInterval = null;
 
   const showUpload = () => {
     currentDataUrl = "";
     if (imageInput) imageInput.value = "";
+    if (cameraInput) cameraInput.value = "";
+    if (processingTimer) {
+      clearTimeout(processingTimer);
+      processingTimer = null;
+    }
+    if (messageInterval) {
+      clearInterval(messageInterval);
+      messageInterval = null;
+    }
+    processingOverlay?.classList.add("hidden");
+    processingOverlay?.setAttribute("hidden", "");
     stageUpload?.classList.remove("hidden");
     stageUpload?.removeAttribute("hidden");
     stageReady?.classList.add("hidden");
@@ -30,6 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
       readyPreview.src = dataUrl;
       readyPreview.alt = "Selected image preview";
     }
+    processingOverlay?.classList.add("hidden");
+    processingOverlay?.setAttribute("hidden", "");
     stageUpload?.classList.add("hidden");
     stageUpload?.setAttribute("hidden", "");
     stageReady?.classList.remove("hidden");
@@ -39,10 +70,22 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showResults = () => {
+    if (messageInterval) {
+      clearInterval(messageInterval);
+      messageInterval = null;
+    }
+    if (processingTimer) {
+      clearTimeout(processingTimer);
+      processingTimer = null;
+    }
+    processingOverlay?.classList.add("hidden");
+    processingOverlay?.setAttribute("hidden", "");
     if (resultOriginal && currentDataUrl) {
       resultOriginal.src = currentDataUrl;
       resultOriginal.alt = "Uploaded construction image";
     }
+    if (resultHeadline) resultHeadline.textContent = DEMO_HEADLINE;
+    if (resultSummary) resultSummary.textContent = DEMO_SUMMARY;
     stageUpload?.classList.add("hidden");
     stageUpload?.setAttribute("hidden", "");
     stageReady?.classList.add("hidden");
@@ -51,13 +94,31 @@ document.addEventListener("DOMContentLoaded", () => {
     stageResults?.removeAttribute("hidden");
   };
 
-  addImageBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    imageInput?.click();
-  });
+  const runProcessingThenResults = () => {
+    if (!currentDataUrl) return;
+    processingOverlay?.classList.remove("hidden");
+    processingOverlay?.removeAttribute("hidden");
+
+    let i = 0;
+    if (processingStatus) processingStatus.textContent = PROCESSING_MESSAGES[0];
+    if (messageInterval) clearInterval(messageInterval);
+    messageInterval = window.setInterval(() => {
+      i = (i + 1) % PROCESSING_MESSAGES.length;
+      if (processingStatus) processingStatus.textContent = PROCESSING_MESSAGES[i];
+    }, 850);
+
+    if (processingTimer) clearTimeout(processingTimer);
+    processingTimer = window.setTimeout(() => {
+      if (messageInterval) {
+        clearInterval(messageInterval);
+        messageInterval = null;
+      }
+      showResults();
+    }, 3400);
+  };
 
   uploadZone?.addEventListener("click", (e) => {
-    if (e.target === addImageBtn || addImageBtn?.contains(e.target)) return;
+    if (e.target === cameraBtn || cameraBtn?.contains(e.target)) return;
     imageInput?.click();
   });
 
@@ -66,6 +127,12 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       imageInput?.click();
     }
+  });
+
+  cameraBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    cameraInput?.click();
   });
 
   let dragDepth = 0;
@@ -115,9 +182,14 @@ document.addEventListener("DOMContentLoaded", () => {
     loadFile(file);
   });
 
+  cameraInput?.addEventListener("change", (e) => {
+    const [file] = e.target.files || [];
+    loadFile(file);
+  });
+
   runAnalysisBtn?.addEventListener("click", () => {
     if (!currentDataUrl) return;
-    showResults();
+    runProcessingThenResults();
   });
 
   cancelReadyBtn?.addEventListener("click", () => {
