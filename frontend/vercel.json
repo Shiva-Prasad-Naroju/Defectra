@@ -1,7 +1,6 @@
 {
   "rewrites": [
-    { "source": "/dashboard/image-analysis", "destination": "/dashboard/image-analysis/index.html" },
-    { "source": "/dashboard/live", "destination": "/dashboard/live/index.html" }
+    { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
     {
