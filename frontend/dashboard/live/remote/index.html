@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Remote Camera - SiteSureLabs</title>
+  <meta name="description" content="Stream your camera to a SiteSureLabs live inspection session.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../style.css">
+</head>
+<body class="remote-camera-page">
+  <div class="remote-camera">
+    <!-- Connecting state -->
+    <div class="remote-camera__state" id="state-connecting">
+      <div class="remote-camera__brand">
+        <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="36" height="36" class="logo-img" decoding="async">
+        <span class="logo-text">SiteSureLabs</span>
+      </div>
+      <div class="remote-camera__spinner">
+        <div class="dashboard-spinner spinner"></div>
+      </div>
+      <h1 class="remote-camera__title">Connecting to session&hellip;</h1>
+      <p class="remote-camera__desc">Setting up a secure connection to the inspection dashboard.</p>
+    </div>
+
+    <!-- Camera permission state -->
+    <div class="remote-camera__state hidden" id="state-permission">
+      <div class="remote-camera__brand">
+        <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="36" height="36" class="logo-img" decoding="async">
+        <span class="logo-text">SiteSureLabs</span>
+      </div>
+      <div class="remote-camera__cam-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="16" width="36" height="28" rx="4" stroke="#60a5fa" stroke-width="2"/>
+          <path d="M44 24l12-6v28l-12-6V24z" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="26" cy="30" r="8" stroke="#93c5fd" stroke-width="1.5"/>
+          <circle cx="26" cy="30" r="3" fill="#bfdbfe"/>
+        </svg>
+      </div>
+      <h1 class="remote-camera__title">Ready to stream</h1>
+      <p class="remote-camera__desc">Tap the button below to allow camera access and start streaming to the dashboard.</p>
+      <button type="button" class="primary-btn remote-camera__start-btn" id="start-camera-btn">
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="2" y="5" width="14" height="12" rx="1.5" stroke-width="1.8"/>
+          <path d="M16 9l5-2.5v11L16 15" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+        Start camera
+      </button>
+    </div>
+
+    <!-- Streaming state -->
+    <div class="remote-camera__state hidden" id="state-streaming">
+      <div class="remote-camera__video-wrap">
+        <video id="remote-video" autoplay playsinline muted></video>
+        <div class="remote-camera__live-badge">
+          <span class="dot online"></span>
+          Streaming
+        </div>
+      </div>
+      <div class="remote-camera__controls">
+        <button type="button" class="danger-btn remote-camera__stop-btn" id="stop-camera-btn">Stop streaming</button>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div class="remote-camera__state hidden" id="state-error">
+      <div class="remote-camera__brand">
+        <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="36" height="36" class="logo-img" decoding="async">
+        <span class="logo-text">SiteSureLabs</span>
+      </div>
+      <div class="remote-camera__error-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="#f87171" stroke-width="2"/><path d="M24 16v10M24 30v2" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <h1 class="remote-camera__title">Connection failed</h1>
+      <p class="remote-camera__desc" id="error-message">Could not connect to the inspection session. The link may have expired.</p>
+      <button type="button" class="primary-btn remote-camera__retry-btn" id="retry-btn">Try again</button>
+    </div>
+  </div>
+
+  <script type="module" src="/remote-camera.js"></script>
+</body>
+</html>

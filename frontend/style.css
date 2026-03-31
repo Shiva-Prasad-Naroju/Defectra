@@ -4085,33 +4085,30 @@ a {
   letter-spacing: 0.01em;
 }
 
-.dashboard-live-cta-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0.85rem 0.9rem 1rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.95) 100%);
-}
-
 .dashboard-live-start-btn.primary-btn {
-  border-radius: 12px;
-  padding: 11px 20px;
+  border-radius: 10px;
+  padding: 9px 15px;
   font-weight: 600;
+  font-size: 0.84rem;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(145deg, #2563eb 0%, #4f46e5 100%);
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  gap: 7px;
+  background: linear-gradient(160deg, #2563eb 0%, #3b82f6 100%);
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 2px 8px rgba(37, 99, 235, 0.15);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, border-color 0.2s ease;
 }
 
 .dashboard-live-start-btn.primary-btn:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.03);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.3);
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 5px 14px rgba(59, 130, 246, 0.2);
 }
 
 .dashboard-live-stop-btn.danger-btn {
@@ -4124,12 +4121,6 @@ a {
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(237, 28, 36, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-
-.dashboard-live-cta-row .dashboard-live-start-btn,
-.dashboard-live-cta-row .dashboard-live-stop-btn {
-  min-width: 240px;
-  justify-content: center;
 }
 
 .dashboard-live-stop-btn.danger-btn:hover {
@@ -4193,6 +4184,416 @@ a {
   line-height: 1.5;
 }
 
+/* ========== CTA Row Layout ========== */
+
+.dashboard-live-cta-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 0.65rem 0.95rem 0.8rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.92) 100%);
+  flex-wrap: wrap;
+}
+
+.dashboard-live-cta-divider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a3afbf;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  user-select: none;
+}
+
+.dashboard-live-cta-divider::before,
+.dashboard-live-cta-divider::after {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* ========== QR Connect Button ========== */
+
+.dashboard-live-qr-btn.secondary-btn {
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 600;
+  font-size: 0.83rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.42);
+  color: #334155;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  justify-content: center;
+}
+
+.dashboard-live-qr-btn.secondary-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(100, 116, 139, 0.56);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.09);
+  background: rgba(255, 255, 255, 1);
+}
+
+.dashboard-live-qr-btn .btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ========== QR Modal ========== */
+
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  animation: qrOverlayIn 0.2s ease;
+}
+
+.qr-modal-overlay.hidden {
+  display: none;
+}
+
+@keyframes qrOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.qr-modal {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 20px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.16),
+    0 8px 24px rgba(99, 102, 241, 0.06);
+  animation: qrModalIn 0.25s ease;
+  overflow: hidden;
+}
+
+@keyframes qrModalIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.qr-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(241, 245, 249, 0.85);
+  color: #64748b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.qr-modal__close:hover {
+  background: rgba(226, 232, 240, 0.95);
+  color: #1e293b;
+}
+
+.qr-modal__header {
+  padding: 1.75rem 1.5rem 0;
+}
+
+.qr-modal__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 0.65rem;
+  opacity: 0.85;
+}
+
+.qr-modal__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.qr-modal__title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.02em;
+}
+
+.qr-modal__desc {
+  font-size: 0.825rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 30ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.qr-modal__code-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  margin: 1.25rem 1.5rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.qr-modal__canvas {
+  display: block;
+  border-radius: 6px;
+  image-rendering: pixelated;
+  width: 180px;
+  height: 180px;
+}
+
+.qr-modal__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  color: #94a3b8;
+  font-size: 0.825rem;
+}
+
+.qr-modal__footer {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qr-modal__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.qr-modal__tip {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  font-style: italic;
+}
+
+/* ========== Remote Camera Page ========== */
+
+.remote-camera-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(165deg, #f8fafc 0%, #eef2ff 50%, #f0f9ff 100%);
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.remote-camera {
+  width: 100%;
+  max-width: 400px;
+}
+
+.remote-camera__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+}
+
+.remote-camera__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.remote-camera__brand .logo-text {
+  font-family: var(--font-heading, 'Montserrat', sans-serif);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.remote-camera__spinner {
+  margin-bottom: 0.75rem;
+}
+
+.remote-camera__cam-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.65rem;
+  filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.18));
+}
+
+.remote-camera__cam-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.remote-camera__error-icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0.65rem;
+}
+
+.remote-camera__error-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.remote-camera__title {
+  font-family: var(--font-heading, 'Montserrat', sans-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.remote-camera__desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.55;
+  max-width: 28ch;
+  margin: 0.2rem 0 1.5rem;
+}
+
+.remote-camera__start-btn.primary-btn {
+  border-radius: 14px;
+  padding: 14px 32px;
+  font-weight: 600;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(145deg, #2563eb 0%, #4f46e5 100%);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.remote-camera__start-btn.primary-btn:hover,
+.remote-camera__start-btn.primary-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(79, 70, 229, 0.35);
+}
+
+.remote-camera__stop-btn.danger-btn {
+  border-radius: 14px;
+  padding: 12px 28px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  background: var(--brand-red, #ef4444);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.remote-camera__retry-btn.primary-btn {
+  border-radius: 14px;
+  padding: 12px 28px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(145deg, #2563eb 0%, #4f46e5 100%);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.remote-camera__video-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0f172a;
+  aspect-ratio: 3 / 4;
+  max-height: 65dvh;
+}
+
+.remote-camera__video-wrap video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remote-camera__live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.remote-camera__live-badge .dot {
+  width: 8px;
+  height: 8px;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.remote-camera__controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* ========== Reduced Motion ========== */
+
 @media (prefers-reduced-motion: reduce) {
   .dashboard-spinner.spinner {
     animation: none;
@@ -4210,6 +4611,15 @@ a {
   .dashboard-live-start-btn.primary-btn:hover,
   .dashboard-live-stop-btn.danger-btn:hover {
     transform: none;
+  }
+
+  .remote-camera__live-badge .dot {
+    animation: none;
+  }
+
+  .qr-modal-overlay,
+  .qr-modal {
+    animation: none;
   }
 }
 
@@ -4315,8 +4725,9 @@ a {
   }
 
   .dashboard-live-cta-row .dashboard-live-start-btn,
-  .dashboard-live-cta-row .dashboard-live-stop-btn {
-    min-width: 200px;
+  .dashboard-live-cta-row .dashboard-live-stop-btn,
+  .dashboard-live-cta-row .dashboard-live-qr-btn {
+    min-width: 180px;
   }
 
   .dashboard-live-video.video-wrapper {
@@ -4393,13 +4804,15 @@ a {
 
   /* Live */
   .dashboard-live-cta-row .dashboard-live-start-btn,
-  .dashboard-live-cta-row .dashboard-live-stop-btn {
+  .dashboard-live-cta-row .dashboard-live-stop-btn,
+  .dashboard-live-cta-row .dashboard-live-qr-btn {
     min-width: 0;
     width: 100%;
     max-width: 320px;
   }
 
   .dashboard-live-cta-row {
+    flex-direction: column;
     padding: 0.7rem 0.75rem 0.85rem;
   }
 

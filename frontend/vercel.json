@@ -6,7 +6,9 @@
     { "source": "/dashboard/image-analysis", "destination": "/dashboard/image-analysis/index.html" },
     { "source": "/dashboard/image-analysis/", "destination": "/dashboard/image-analysis/index.html" },
     { "source": "/dashboard/live", "destination": "/dashboard/live/index.html" },
-    { "source": "/dashboard/live/", "destination": "/dashboard/live/index.html" }
+    { "source": "/dashboard/live/", "destination": "/dashboard/live/index.html" },
+    { "source": "/dashboard/live/remote", "destination": "/dashboard/live/remote/index.html" },
+    { "source": "/dashboard/live/remote/", "destination": "/dashboard/live/remote/index.html" }
   ],
   "headers": [
     {

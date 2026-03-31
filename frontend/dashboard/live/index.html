@@ -57,28 +57,6 @@
     <section class="landing-section dashboard-live dashboard-live--v2" id="live-inspection" aria-labelledby="live-heading">
       <div class="container">
         <header class="landing-section-header dashboard-live__header">
-          <!-- <div class="dashboard-workspace-chips">
-            <span class="dashboard-workspace-chip">
-              <svg class="dashboard-workspace-chip__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
-              Live feed
-            </span>
-            <span class="dashboard-workspace-chip">
-              <svg class="dashboard-workspace-chip__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                <path d="M12 18h.01"/>
-              </svg>
-              Your camera
-            </span>
-            <span class="dashboard-workspace-chip">
-              <svg class="dashboard-workspace-chip__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Stays in browser
-            </span>
-          </div> -->
-          <!-- <p class="dashboard-page__eyebrow">Live workspace</p> -->
           <h2 id="live-heading">Live site inspection</h2>
           <p class="landing-section-lead dashboard-live__lead">
             Turn on your camera to view the site in real time.
@@ -104,11 +82,12 @@
                 </svg>
               </div>
               <p class="dashboard-live-placeholder__title">Camera feed not connected</p>
-              <p class="dashboard-live-placeholder__hint">Tap start to enable your camera for this session.</p>
+              <p class="dashboard-live-placeholder__hint">Use your device camera directly, or scan a QR code to stream from another device.</p>
             </div>
             <video id="live-video" autoplay playsinline muted class="hidden"></video>
           </div>
-          <div class="dashboard-live-cta-row">
+
+          <div class="dashboard-live-cta-row" id="cta-row">
             <button type="button" class="primary-btn dashboard-live-start-btn" id="start-stream-btn">
               <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="2" y="5" width="14" height="12" rx="1.5" stroke-width="1.8"/>
@@ -118,12 +97,63 @@
               </svg>
               Start live inspection
             </button>
+
+            <span class="dashboard-live-cta-divider" aria-hidden="true">or</span>
+
+            <button type="button" class="secondary-btn dashboard-live-qr-btn" id="qr-connect-btn">
+              <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="1.8"/>
+                <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="1.8"/>
+                <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="1.8"/>
+                <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 18h3M18 14v3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Connect via QR code
+            </button>
+
             <button type="button" class="danger-btn dashboard-live-stop-btn hidden" id="stop-stream-btn">Stop inspection</button>
           </div>
         </article>
       </div>
     </section>
   </main>
+
+  <!-- QR Code Modal (outside article for proper overlay) -->
+  <div class="qr-modal-overlay hidden" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+    <div class="qr-modal">
+      <button type="button" class="qr-modal__close" id="qr-modal-close" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="qr-modal__header">
+        <div class="qr-modal__icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="14" height="14" rx="2" stroke="#60a5fa" stroke-width="1.5"/>
+            <rect x="28" y="6" width="14" height="14" rx="2" stroke="#60a5fa" stroke-width="1.5"/>
+            <rect x="6" y="28" width="14" height="14" rx="2" stroke="#60a5fa" stroke-width="1.5"/>
+            <rect x="28" y="28" width="6" height="6" rx="1" fill="#93c5fd"/>
+            <rect x="36" y="36" width="6" height="6" rx="1" fill="#93c5fd"/>
+            <rect x="10" y="10" width="6" height="6" rx="1" fill="#bfdbfe"/>
+            <rect x="32" y="10" width="6" height="6" rx="1" fill="#bfdbfe"/>
+            <rect x="10" y="32" width="6" height="6" rx="1" fill="#bfdbfe"/>
+          </svg>
+        </div>
+        <h3 class="qr-modal__title" id="qr-modal-title">Scan to connect camera</h3>
+        <p class="qr-modal__desc">Scan this QR code with your phone to open the camera and start streaming to this page.</p>
+      </div>
+      <div class="qr-modal__code-wrapper" id="qr-code-container">
+        <div class="qr-modal__spinner" id="qr-spinner">
+          <div class="dashboard-spinner spinner"></div>
+          <span>Generating link&hellip;</span>
+        </div>
+      </div>
+      <div class="qr-modal__footer">
+        <div class="qr-modal__status" id="qr-status">
+          <span class="dot" id="qr-status-dot"></span>
+          <span id="qr-status-text">Waiting for device&hellip;</span>
+        </div>
+        <p class="qr-modal__tip">Works across any network — no same-WiFi needed</p>
+      </div>
+    </div>
+  </div>
 
   <footer class="site-footer site-footer--dashboard" aria-label="Site footer">
     <div class="container site-footer__bottom-inner">
