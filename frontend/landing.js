@@ -66,6 +66,137 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleScrollHint();
   }
 
+  // Unified workflow decision engine
+  const workflowEngine = document.getElementById("workflow-engine");
+  if (workflowEngine) {
+    const scene = workflowEngine.querySelector(".workflow-engine__scene");
+    const hotspots = workflowEngine.querySelectorAll(".workflow-engine__hotspot");
+    const timeEl = document.getElementById("workflow-engine-time");
+
+    let activeMode = "image";
+    let previewMode = null;
+    let cycleTimer = null;
+    let scanResetTimer = null;
+    let startTimer = null;
+
+    const applyMode = (mode, withTransition = true) => {
+      if (!scene) return;
+      scene.classList.remove("mode-idle", "mode-image", "mode-live");
+      if (withTransition) {
+        scene.classList.add("is-transitioning");
+        clearTimeout(scanResetTimer);
+        scanResetTimer = window.setTimeout(() => {
+          scene.classList.remove("is-transitioning");
+        }, 700);
+      }
+      scene.classList.add("mode-" + mode);
+
+      // Reset scan-fill animation when entering image mode
+      if (mode === "image") {
+        const fill = scene.querySelector(".wf-narrative__scan-fill");
+        if (fill) {
+          fill.style.animation = "none";
+          fill.offsetHeight;
+          fill.style.animation = "";
+        }
+        // Re-trigger badge sequence
+        scene.querySelectorAll(".wf-narrative__badge").forEach((b) => {
+          b.style.animation = "none";
+          b.offsetHeight;
+          b.style.animation = "";
+        });
+      }
+    };
+
+    const setActiveMode = (mode, withTransition = true) => {
+      activeMode = mode;
+      if (!previewMode) applyMode(mode, withTransition);
+    };
+
+    const updateTime = () => {
+      if (!timeEl) return;
+      const now = new Date();
+      timeEl.textContent = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+    };
+
+    const startCycle = () => {
+      clearInterval(cycleTimer);
+      cycleTimer = window.setInterval(() => {
+        setActiveMode(activeMode === "image" ? "live" : "image", true);
+      }, 7000);
+    };
+
+    applyMode("idle", false);
+    updateTime();
+    const timeTimer = window.setInterval(updateTime, 1000);
+
+    // Measure SVG path lengths for precise draw-on animation
+    scene.querySelectorAll(".wf-narrative__crack, .wf-narrative__crack--live").forEach((path) => {
+      if (path.getTotalLength) {
+        const len = Math.ceil(path.getTotalLength());
+        path.style.setProperty("--seg-len", len);
+      }
+    });
+
+    startTimer = window.setTimeout(() => {
+      setActiveMode("image", false);
+      startCycle();
+    }, 1000);
+
+    hotspots.forEach((spot) => {
+      const workflow = spot.getAttribute("data-workflow");
+      if (!workflow) return;
+
+      const href = workflow === "image" ? "/dashboard/image-analysis/" : "/dashboard/live/";
+
+      spot.addEventListener("mouseenter", () => {
+        previewMode = workflow;
+        applyMode(workflow, false);
+      });
+
+      spot.addEventListener("mouseleave", () => {
+        previewMode = null;
+        applyMode(activeMode, false);
+      });
+
+      spot.addEventListener("focus", () => {
+        previewMode = workflow;
+        applyMode(workflow, false);
+      });
+
+      spot.addEventListener("blur", () => {
+        previewMode = null;
+        applyMode(activeMode, false);
+      });
+
+      spot.addEventListener("click", () => {
+        window.location.href = href;
+      });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        clearInterval(cycleTimer);
+        cycleTimer = null;
+      } else if (!cycleTimer) {
+        startCycle();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      clearInterval(cycleTimer);
+      cycleTimer = null;
+      clearInterval(timeTimer);
+      clearTimeout(scanResetTimer);
+      clearTimeout(startTimer);
+    });
+  }
+
   const setupReveal = (selector, threshold = 0.15) => {
     const items = document.querySelectorAll(selector);
     if (!items.length) return;
@@ -139,6 +270,26 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     answer.addEventListener("transitionend", onEnd);
   };
+
+  // Normalize initial accordion state and keep first item open by default.
+  faqItems.forEach((item) => {
+    if (!item.hasAttribute("open")) item.classList.remove("is-open");
+  });
+  const defaultFaqItem = document.querySelector(".faq-item[open]") || faqItems[0];
+  if (defaultFaqItem) {
+    faqItems.forEach((item) => {
+      if (item !== defaultFaqItem) {
+        item.removeAttribute("open");
+        item.classList.remove("is-open");
+        const answer = item.querySelector(".faq-answer");
+        if (answer) {
+          answer.style.height = "0";
+          answer.style.opacity = "0";
+        }
+      }
+    });
+    openFaq(defaultFaqItem);
+  }
 
   faqItems.forEach((item) => {
     const summary = item.querySelector("summary");

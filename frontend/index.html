@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SiteSureLabs - Construction Intelligence</title>
   <meta name="description" content="AI-powered defect detection and segmentation for construction progress monitoring.">
+  <link rel="icon" type="image/png" href="/MyHomeLogo/MyHomeLogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
@@ -20,6 +21,7 @@
       <div class="nav-actions">
         <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav"></button>
         <ul class="nav-links" id="primary-nav">
+          <li><a href="#hero">Home</a></li>
           <li><a href="#features">Features</a></li>
           <li><a href="#how-it-works">Walkthrough</a></li>
           <li><a href="#outcomes">Deliverables</a></li>
@@ -112,57 +114,102 @@
     <section id="features" class="landing-section" aria-labelledby="features-heading">
       <div class="container">
         <div class="landing-section-header reveal-on-scroll" style="--reveal-i:0">
-          <h2 id="features-heading">Platform features</h2>
-          <p class="landing-section-lead">Image Analysis for still captures and Live Inspection for real-time video—pick the workflow that fits your site.</p>
+          <h2 id="features-heading">Two ways to inspect</h2>
+          <p class="landing-section-lead">Upload a photo or stream live — the AI does the rest.</p>
         </div>
-        <div class="platform-feature-grid">
-          <article class="platform-feature-card benefit-card benefit-card--reveal reveal-on-scroll" style="--reveal-i:0">
-            <div class="platform-feature-card__icon platform-feature-card__icon--analysis" aria-hidden="true">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="6" y="10" width="36" height="28" rx="3" stroke="#334155" stroke-width="1.4"/>
-                <rect x="6" y="10" width="36" height="8" rx="3" fill="#eff6ff" stroke="#93c5fd" stroke-width="0.8"/>
-                <circle cx="10.5" cy="14" r="1.2" fill="#f87171"/>
-                <circle cx="15" cy="14" r="1.2" fill="#fbbf24"/>
-                <circle cx="19.5" cy="14" r="1.2" fill="#34d399"/>
-                <rect x="10" y="22" width="28" height="14" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
-                <path d="M14 32l6-8 4 5 4-6 6 9" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="30" cy="24" r="5" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.75"/>
+
+        <!-- OLD WORKFLOW ENGINE REMOVED — replaced by fdemo cards below -->
+        <div class="fdemo reveal-on-scroll" style="--reveal-i:1">
+          <!-- ═══ FEATURE 1: Image Analysis ═══ -->
+          <div class="fdemo__card fdemo__card--image">
+            <div class="fdemo__header">
+              <span class="fdemo__badge fdemo__badge--blue">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4 6l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Image Analysis
+              </span>
+            </div>
+            <div class="fdemo__scene fdemo__scene--image" aria-hidden="true">
+              <svg class="fdemo__wall" viewBox="0 0 320 200" fill="none">
+                <rect x="0" y="0" width="320" height="200" rx="4" fill="#f1f5f9"/>
+                <rect x="0" y="0" width="320" height="200" rx="4" stroke="#e2e8f0" stroke-width="1"/>
+                <path d="M0 40h320M0 80h320M0 120h320M0 160h320" stroke="#e8ecf1" stroke-width="0.6"/>
+                <path d="M80 0v40M200 40v40M80 80v40M240 120v40M120 160v40" stroke="#e8ecf1" stroke-width="0.6"/>
+                <path d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                <path d="M210 30L220 58 214 80 226 108 218 132 230 150" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+              </svg>
+              <div class="fdemo__scanline"></div>
+              <svg class="fdemo__seg" viewBox="0 0 320 200" fill="none">
+                <defs><filter id="fglow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                <path class="fdemo__crack fdemo__crack--a" d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" filter="url(#fglow)"/>
+                <path class="fdemo__crack fdemo__crack--b" d="M210 30L220 58 214 80 226 108 218 132 230 150" filter="url(#fglow)"/>
+                <polygon class="fdemo__region" points="88,38 108,28 114,68 106,96 112,130 94,160 86,150 80,100 90,60"/>
               </svg>
             </div>
-            <h3 class="platform-feature-card__title">Image Analysis</h3>
-            <p class="platform-feature-card__lede">Upload photos and review AI-highlighted regions on still captures.</p>
-            <ul class="platform-feature-card__list">
-              <li>Drag-and-drop or browse uploads</li>
-              <li>Overlays for defects and regions of interest</li>
-              <li>Ideal for documentation and async review</li>
-            </ul>
-            <a href="/dashboard/image-analysis/" class="platform-feature-card__cta primary-btn">Open Image Analysis</a>
-          </article>
-          <article class="platform-feature-card platform-feature-card--live benefit-card benefit-card--reveal reveal-on-scroll" style="--reveal-i:1">
-            <div class="platform-feature-card__icon platform-feature-card__icon--live" aria-hidden="true">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8" y="12" width="32" height="24" rx="3" stroke="#334155" stroke-width="1.4"/>
-                <circle cx="24" cy="24" r="7" stroke="#22c55e" stroke-width="1.8" stroke-dasharray="4 3"/>
-                <circle cx="24" cy="24" r="3" fill="#dcfce7" stroke="#16a34a" stroke-width="1.2"/>
-                <path d="M8 18h32" stroke="#e2e8f0" stroke-width="1"/>
-                <circle cx="14" cy="15" r="2" fill="#ef4444"/>
-                <rect x="19" y="13" width="10" height="5" rx="1" fill="#fecaca" stroke="#ef4444" stroke-width="0.6"/>
-                <path d="M21 15.5h6M21 17h4" stroke="#991b1b" stroke-width="0.6" stroke-linecap="round"/>
-                <path d="M36 30l4 3v-12l-4 3v6z" fill="#2563eb" opacity="0.9"/>
-              </svg>
+            <div class="fdemo__steps">
+              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Upload photo</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>AI scans</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Red overlay result</span></div>
             </div>
-            <h3 class="platform-feature-card__title">Live Inspection</h3>
-            <p class="platform-feature-card__lede">Stream from a camera and watch analysis update as the scene moves.</p>
-            <ul class="platform-feature-card__list">
-              <li>Start and stop the live pipeline from the dashboard</li>
-              <li>Connection state shown in the toolbar</li>
-              <li>Built for walkthroughs and on-site checks</li>
-            </ul>
-            <a href="/dashboard/live/" class="platform-feature-card__cta secondary-btn">Open Live Inspection</a>
-          </article>
+            <a href="/dashboard/image-analysis/" class="fdemo__cta">Try Image Analysis</a>
+          </div>
+
+          <!-- ═══ FEATURE 2: Live Inspection ═══ -->
+          <div class="fdemo__card fdemo__card--live">
+            <div class="fdemo__header">
+              <span class="fdemo__badge fdemo__badge--green"><span class="fdemo__live-dot"></span>Live AI Inspection</span>
+            </div>
+            <div class="fdemo__scene fdemo__scene--live" aria-hidden="true">
+              <div class="fdemo__site">
+                <svg class="fdemo__site-svg" viewBox="0 0 140 200" fill="none">
+                  <rect x="80" y="0" width="60" height="200" fill="#e2e8f0" rx="2"/>
+                  <path d="M80 50h60M80 100h60M80 150h60" stroke="#d1d5db" stroke-width="0.5"/>
+                  <path d="M108 20L105 50 110 75 104 105 109 135 103 165 108 190" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+                  <circle cx="40" cy="60" r="10" fill="#475569"/>
+                  <rect x="32" y="72" width="16" height="30" rx="4" fill="#475569"/>
+                  <rect x="32" y="102" width="7" height="24" rx="3" fill="#475569"/>
+                  <rect x="41" y="102" width="7" height="24" rx="3" fill="#475569"/>
+                  <rect x="48" y="78" width="28" height="6" rx="3" fill="#475569"/>
+                  <rect x="68" y="72" width="16" height="12" rx="3" fill="#1e293b"/>
+                  <circle cx="76" cy="78" r="4" stroke="#64748b" stroke-width="1" fill="#334155"/>
+                  <circle cx="76" cy="78" r="1.5" fill="#93c5fd"/>
+                  <path class="fdemo__signal fdemo__signal--1" d="M88 74a8 8 0 010 8" stroke="#4ade80" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                  <path class="fdemo__signal fdemo__signal--2" d="M92 70a14 14 0 010 16" stroke="#4ade80" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.5"/>
+                </svg>
+              </div>
+              <div class="fdemo__stream-arrow">
+                <svg viewBox="0 0 40 20" fill="none" class="fdemo__stream-svg"><path d="M2 10h28" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round" class="fdemo__stream-dash"/><path d="M26 4l8 6-8 6" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span class="fdemo__stream-label">streaming</span>
+              </div>
+              <div class="fdemo__laptop">
+                <div class="fdemo__laptop-screen">
+                  <div class="fdemo__laptop-live"><span class="fdemo__live-dot fdemo__live-dot--sm"></span>LIVE</div>
+                  <svg class="fdemo__laptop-feed" viewBox="0 0 160 100" fill="none">
+                    <rect width="160" height="100" fill="#f1f5f9" rx="2"/>
+                    <path d="M0 25h160M0 50h160M0 75h160" stroke="#e8ecf1" stroke-width="0.5"/>
+                    <path class="fdemo__live-crack fdemo__live-crack--1" d="M62 5L59 25 64 38 58 53 63 67 57 82 62 95"/>
+                    <path class="fdemo__live-crack fdemo__live-crack--2" d="M110 10L115 30 110 48 118 65 112 80"/>
+                    <rect class="fdemo__live-box" x="48" y="8" width="30" height="85" rx="4"/>
+                    <rect class="fdemo__live-box" x="100" y="14" width="28" height="70" rx="4"/>
+                  </svg>
+                </div>
+                <div class="fdemo__laptop-base"></div>
+              </div>
+            </div>
+            <div class="fdemo__steps">
+              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Point camera</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>Streams live</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Real-time segmentation</span></div>
+            </div>
+            <a href="/dashboard/live/" class="fdemo__cta fdemo__cta--green">Try Live Inspection</a>
+          </div>
         </div>
       </div>
     </section>
+
 
     <section id="how-it-works" class="landing-section landing-section--alt" aria-labelledby="how-heading">
       <div class="container">
@@ -315,17 +362,17 @@
     <section id="faq" class="landing-section landing-section--alt" aria-labelledby="faq-heading">
       <div class="container">
         <div class="landing-section-header reveal-on-scroll" style="--reveal-i:0">
-          <h2 id="faq-heading">Frequently Asked Questions</h2>
-          <p class="landing-section-lead">Everything you need to know about SiteSureLabs and AI-powered construction inspection.</p>
+          <h2 id="faq-heading">Common Questions</h2>
+          <p class="landing-section-lead">Everything you need to get started with AI-powered inspection.</p>
         </div>
         <div class="faq-list">
-          <details class="faq-item reveal-on-scroll" style="--reveal-i:0">
+          <details class="faq-item reveal-on-scroll is-open" style="--reveal-i:0" open>
             <summary class="faq-question">
-              <span>What types of defects can SiteSureLabs detect?</span>
+              <span>What types of defects can be detected?</span>
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="faq-answer">
-              <p>SiteSureLabs can detect a wide range of construction defects including cracks, moisture damage, misalignment, surface irregularities, and structural anomalies. Our AI model is continuously trained on real-world construction data to improve accuracy.</p>
+              <p><strong>Cracks, moisture damage, and alignment issues</strong> are detected automatically. The model also flags surface anomalies for faster review.</p>
             </div>
           </details>
           <details class="faq-item reveal-on-scroll" style="--reveal-i:1">
@@ -334,43 +381,34 @@
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="faq-answer">
-              <p>Our AI achieves high accuracy by leveraging deep learning models trained on thousands of annotated construction images. Results include confidence scores and severity ratings so your team can prioritize effectively.</p>
+              <p><strong>High-confidence detection scores</strong> are provided for each finding. Teams can validate results quickly and prioritize the right fixes.</p>
             </div>
           </details>
           <details class="faq-item reveal-on-scroll" style="--reveal-i:2">
             <summary class="faq-question">
-              <span>Can I use SiteSureLabs with a live camera feed?</span>
+              <span>Does it support live camera inspection?</span>
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="faq-answer">
-              <p>Yes! Our Live Inspection feature lets you stream directly from a camera and see defect analysis in real time. It's ideal for on-site walkthroughs and progress checks.</p>
-            </div>
-          </details>
-          <details class="faq-item reveal-on-scroll" style="--reveal-i:3">
-            <summary class="faq-question">
-              <span>What image formats are supported?</span>
-              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </summary>
-            <div class="faq-answer">
-              <p>SiteSureLabs supports all common image formats including JPEG, PNG, and WebP. Simply drag and drop your site photos into the Image Analysis dashboard to get started.</p>
+              <p>Yes, it supports <strong>real-time live camera feeds</strong>. You can monitor active sites and see updates continuously during inspections.</p>
             </div>
           </details>
           <details class="faq-item reveal-on-scroll" style="--reveal-i:4">
             <summary class="faq-question">
-              <span>Is my data secure?</span>
+              <span>Is my data secure and protected?</span>
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="faq-answer">
-              <p>Absolutely. All uploads are processed securely and are not shared with third parties. Your construction data stays private and is used only for generating your inspection results.</p>
+              <p>Your files are handled in a <strong>secure processing flow</strong>. Data is kept private and used only for inspection analysis.</p>
             </div>
           </details>
           <details class="faq-item reveal-on-scroll" style="--reveal-i:5">
             <summary class="faq-question">
-              <span>Can I export inspection reports?</span>
+              <span>Can I export detailed inspection reports?</span>
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="faq-answer">
-              <p>Yes. After analysis, you can export structured reports with defect locations, severity levels, and AI-generated summaries — perfect for documentation, compliance, and team sharing.</p>
+              <p>Yes, you can export <strong>detailed reports</strong> with defect regions, severity levels, and concise summaries for documentation and sharing.</p>
             </div>
           </details>
         </div>
