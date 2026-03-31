@@ -101,17 +101,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  /** Boost video bitrate on an active peer connection */
+  function boostBitrate(peerConnection) {
+    const senders = peerConnection.getSenders();
+    const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+    if (!videoSender) return;
+
+    const params = videoSender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) {
+      params.encodings = [{}];
+    }
+    params.encodings[0].maxBitrate = 4_000_000;       /* 4 Mbps */
+    params.encodings[0].maxFramerate = 30;
+    params.degradationPreference = "maintain-resolution";
+    videoSender.setParameters(params).catch(() => {});
+  }
+
   async function startStreaming() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
+        },
         audio: false
+      });
+
+      /* Hint the track to prioritize detail over motion */
+      stream.getVideoTracks().forEach((t) => {
+        if ("contentHint" in t) t.contentHint = "detail";
       });
 
       video.srcObject = stream;
       showState("streaming");
 
       activeCall = peer.call(hostPeerId, stream);
+
+      /* Boost bitrate once the underlying RTCPeerConnection is available */
+      setTimeout(() => {
+        if (activeCall?.peerConnection) boostBitrate(activeCall.peerConnection);
+      }, 1500);
 
       activeCall.on("close", () => {
         stopStreaming();
