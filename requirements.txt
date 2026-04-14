@@ -1,0 +1,2 @@
+# Optional: list pip-style pins here, then run: uv add -r requirements.txt
+# Example: requests>=2.28

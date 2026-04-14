@@ -12,6 +12,7 @@
     "preview": "node ./node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
+    "marked": "^18.0.0",
     "vite": "^8.0.3"
   }
 }

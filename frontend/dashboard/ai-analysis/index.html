@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Image Analysis - SiteSureLabs</title>
-  <meta name="description" content="Upload construction photos for AI-assisted defect detection and review.">
+  <title>AI Analysis - SiteSureLabs</title>
+  <meta name="description" content="PMO-style AI inspection for construction defects — honeycombing, seepage, dampness, and more.">
   <link rel="icon" type="image/png" href="/MyHomeLogo/MyHomeLogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../style.css">
 </head>
 <body class="landing-page dashboard-page">
@@ -34,16 +34,16 @@
       <div class="dashboard-mode-toggle" role="tablist" aria-label="Choose workspace">
         <a
           href="/dashboard/ai-analysis/"
-          class="dashboard-mode-toggle__tab"
-          role="tab"
-          aria-selected="false"
-        >AI Analysis</a>
-        <a
-          href="/dashboard/image-analysis/"
           class="dashboard-mode-toggle__tab is-active"
           role="tab"
           aria-selected="true"
           aria-current="page"
+        >AI Analysis</a>
+        <a
+          href="/dashboard/image-analysis/"
+          class="dashboard-mode-toggle__tab"
+          role="tab"
+          aria-selected="false"
         >Image Analysis</a>
         <a
           href="/dashboard/live/"
@@ -55,24 +55,24 @@
     </div>
   </div>
 
-  <main class="landing-main dashboard-main dashboard-main--analysis dashboard-main--analysis-v3">
+  <main class="landing-main dashboard-main dashboard-main--analysis dashboard-main--analysis-v3 dashboard-main--ai-analysis">
     <div class="dashboard-page-decor dashboard-page-decor--analysis" aria-hidden="true">
       <span class="dashboard-analysis-bg-orb dashboard-analysis-bg-orb--1"></span>
       <span class="dashboard-analysis-bg-orb dashboard-analysis-bg-orb--2"></span>
     </div>
 
-    <section class="landing-section dashboard-analysis dashboard-analysis--v3" id="image-analysis" aria-labelledby="analysis-heading">
+    <section class="landing-section dashboard-analysis dashboard-analysis--v3" id="ai-analysis" aria-labelledby="ai-analysis-heading">
       <div class="container dashboard-analysis-shell">
         <header class="dashboard-analysis-hero">
-          <!-- <p class="dashboard-analysis-eyebrow">Inspection workspace</p> -->
-          <h2 id="analysis-heading" class="dashboard-analysis-title">Analyze site photos with AI</h2>
+          <h2 id="ai-analysis-heading" class="dashboard-analysis-title">PMO inspection with AI</h2>
           <p class="dashboard-analysis-subtitle">
-            Upload a photo and we will guide you through what needs attention.
+            Upload a site photo. Our model reviews it like a PMO team and reports defects for your engineer — honeycombing, seepage, dampness, exposed conduits, exposed rebar, and related issues.
           </p>
         </header>
 
+        <p class="analysis-error-banner analysis-error-banner--workspace hidden" id="workspace-error" hidden role="alert"></p>
+
         <div class="dashboard-analysis-workspace dashboard-analysis-workspace--v3">
-          <!-- Upload -->
           <div class="dashboard-stage dashboard-stage--upload" id="stage-upload" data-stage="upload">
             <div
               class="analysis-upload"
@@ -82,7 +82,6 @@
               aria-label="Upload an image: drop a file or click to browse"
             >
               <input type="file" id="image-input" accept="image/*" hidden>
-              <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
               <div class="analysis-upload__icon-wrap">
                 <svg class="analysis-upload__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -90,69 +89,54 @@
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <p class="analysis-upload__title">Drop your image here</p>
+              <p class="analysis-upload__title">Drop your site image here</p>
               <p class="analysis-upload__hint">or click to browse — PNG, JPG up to 20MB</p>
-              <!-- <button type="button" class="analysis-upload__camera" id="camera-btn">Use camera</button> -->
             </div>
           </div>
 
-          <!-- Preview + run -->
           <div class="dashboard-stage dashboard-stage--ready hidden" id="stage-ready" data-stage="ready" hidden>
             <div class="analysis-ready-card">
               <div class="analysis-ready-card__preview-wrap">
-                <img id="ready-preview" class="analysis-ready-card__img" src="" alt="Selected image preview" width="800" height="600">
+                <img id="ready-preview" class="analysis-ready-card__img analysis-ready-card__img--clickable" src="" alt="Selected image preview — click to run PMO analysis" title="Click image or use Run PMO analysis" width="800" height="600">
                 <div class="analysis-ready-card__processing hidden" id="processing-overlay" hidden>
                   <div class="analysis-ready-card__processing-inner">
                     <div class="analysis-spinner" aria-hidden="true"></div>
-                    <p class="analysis-ready-card__status" id="processing-status">Scanning for defects…</p>
+                    <p class="analysis-ready-card__status" id="processing-status">Sending to PMO AI model…</p>
                   </div>
                 </div>
               </div>
               <div class="analysis-ready-card__actions">
                 <button type="button" class="primary-btn analysis-run-btn" id="run-analysis-btn">
                   <span class="analysis-run-btn__shine" aria-hidden="true"></span>
-                  Run analysis
+                  Run PMO analysis
                 </button>
                 <button type="button" class="analysis-text-link" id="cancel-ready-btn">Choose a different image</button>
               </div>
             </div>
           </div>
 
-          <!-- Results -->
           <div class="dashboard-stage dashboard-stage--results hidden" id="stage-results" data-stage="results" hidden>
-            <div class="analysis-results-card">
-              <div class="analysis-results-card__grid">
+            <div class="analysis-results-card analysis-results-card--ai-report">
+              <div class="analysis-results-card__grid analysis-results-card__grid--ai">
                 <div class="analysis-results-col analysis-results-col--visual">
                   <div class="analysis-results-col__head">
-                    <span class="analysis-pill analysis-pill--muted">Original</span>
-                    <h3 class="analysis-results-col__title">Your photo</h3>
-                    <p class="analysis-results-col__sub">Source capture · defects highlighted</p>
+                    <span class="analysis-pill analysis-pill--muted">Source</span>
+                    <h3 class="analysis-results-col__title">Uploaded image</h3>
+                    <p class="analysis-results-col__sub">Reference for the report</p>
                   </div>
                   <div class="analysis-results-frame">
                     <img id="result-original" src="" alt="Uploaded image" width="800" height="600">
-                    <div class="analysis-hotspot analysis-hotspot--high" aria-hidden="true"></div>
-                    <div class="analysis-hotspot analysis-hotspot--mid" aria-hidden="true"></div>
-                    <div class="analysis-hotspot analysis-hotspot--low" aria-hidden="true"></div>
                   </div>
                 </div>
                 <div class="analysis-results-col analysis-results-col--insight">
                   <div class="analysis-results-col__head">
-                    <span class="analysis-pill analysis-pill--accent">AI insight</span>
-                    <h3 class="analysis-results-col__title">Detection summary</h3>
-                    <p class="analysis-results-col__sub analysis-results-col__sub--insight">Narrative &amp; context</p>
+                    <span class="analysis-pill analysis-pill--accent">Engineer report</span>
+                    <h3 class="analysis-results-col__title">PMO defect assessment</h3>
+                    <p class="analysis-results-col__sub analysis-results-col__sub--insight">Structured findings from the model</p>
                   </div>
-                  <div class="analysis-insight-body">
-                    <p class="analysis-kicker">Key finding</p>
-                    <p class="analysis-insight-headline" id="result-headline">Structural risk detected along the upper joint.</p>
-                    <p class="analysis-insight-copy" id="result-summary">
-                      Full segmentation and metrics will connect when your model is live. This preview shows how results will appear beside your upload.
-                    </p>
-                    <div class="analysis-placeholder-note" id="analysis-placeholder">
-                      <span class="analysis-placeholder-note__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                      </span>
-                      <span>Overlay preview — connect your API for live detections.</span>
-                    </div>
+                  <div class="analysis-engineer-report-wrap">
+                    <p class="analysis-error-banner hidden" id="analysis-error" hidden role="alert"></p>
+                    <div class="analysis-engineer-report" id="result-report" aria-live="polite"></div>
                   </div>
                 </div>
               </div>
@@ -162,7 +146,39 @@
             </div>
           </div>
         </div>
+
+        <div class="dashboard-stage dashboard-stage--live hidden" id="stage-live" data-stage="live" hidden>
+          <div class="ai-live-main-card">
+            <div class="ai-live-visual">
+              <div class="ai-live-visual__frame">
+                <img id="live-stage-preview" class="ai-live-visual__img" src="" alt="Site photo being analyzed" width="800" height="600">
+              </div>
+            </div>
+            <div class="ai-live-main-actions">
+              <button type="button" class="secondary-btn ai-live-main-actions__btn" id="live-done-btn">Analyze another image</button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <aside
+        id="ai-analysis-live-dock"
+        class="ai-live-dock hidden"
+        hidden
+        aria-labelledby="live-insight-title"
+        aria-hidden="true"
+      >
+        <div class="ai-live-panel" id="live-insight-panel">
+          <header class="ai-live-panel__head ai-live-panel__head--compact">
+            <h3 id="live-insight-title" class="ai-live-panel__title">Assessment Report</h3>
+          </header>
+          <div class="ai-live-panel__body-wrap ai-live-panel__body-wrap--tight">
+            <div class="ai-live-stream-scroll ai-live-stream-scroll--tight">
+              <div id="live-stream-report" class="ai-live-stream-report" aria-busy="true"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </section>
   </main>
 
@@ -172,6 +188,6 @@
     </div>
   </footer>
 
-  <script type="module" src="/image-analysis.js"></script>
+  <script type="module" src="/ai-analysis.js"></script>
 </body>
 </html>

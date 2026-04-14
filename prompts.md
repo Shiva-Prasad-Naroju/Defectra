@@ -1,0 +1,1 @@
+analyze this image and tell me what are the defects you see, which needs to be reported
