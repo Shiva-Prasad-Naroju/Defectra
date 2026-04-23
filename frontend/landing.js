@@ -299,25 +299,16 @@ document.addEventListener("DOMContentLoaded", () => {
     answer.addEventListener("transitionend", onEnd);
   };
 
-  // Normalize initial accordion state and keep first item open by default.
+  // Normalize initial accordion state — all items start collapsed.
   faqItems.forEach((item) => {
-    if (!item.hasAttribute("open")) item.classList.remove("is-open");
+    item.removeAttribute("open");
+    item.classList.remove("is-open");
+    const answer = item.querySelector(".faq-answer");
+    if (answer) {
+      answer.style.height = "0";
+      answer.style.opacity = "0";
+    }
   });
-  const defaultFaqItem = document.querySelector(".faq-item[open]") || faqItems[0];
-  if (defaultFaqItem) {
-    faqItems.forEach((item) => {
-      if (item !== defaultFaqItem) {
-        item.removeAttribute("open");
-        item.classList.remove("is-open");
-        const answer = item.querySelector(".faq-answer");
-        if (answer) {
-          answer.style.height = "0";
-          answer.style.opacity = "0";
-        }
-      }
-    });
-    openFaq(defaultFaqItem);
-  }
 
   faqItems.forEach((item) => {
     const summary = item.querySelector("summary");

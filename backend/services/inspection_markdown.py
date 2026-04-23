@@ -28,6 +28,8 @@ def parse_inspection_sections(markdown: str) -> dict[str, Any]:
         out["summary"] = text[:2000]
         return out
 
+    preamble = text[: matches[0].start()].strip()
+
     sections: dict[str, str] = {}
     for i, m in enumerate(matches):
         title = m.group(1).strip()
@@ -45,10 +47,17 @@ def parse_inspection_sections(markdown: str) -> dict[str, Any]:
 
     summary = pick("summary", "executive summary", "overview")
     defects = pick("key defects", "defects", "findings")
-    severity = pick("severity", "risk", "overall severity")
+    # Avoid matching `## Risk Assessment` when resolving severity.
+    severity = pick("severity assessment", "severity", "overall severity")
     actions = pick("recommended actions", "recommendations", "actions", "next steps")
 
-    out["summary"] = summary or text[:1500]
+    summary_body = summary
+    if summary_body and preamble:
+        out["summary"] = f"{preamble}\n\n{summary_body}".strip()
+    elif summary_body:
+        out["summary"] = summary_body
+    else:
+        out["summary"] = preamble or text[:1500]
 
     if defects:
         bullets = [ln.strip().lstrip("-•*").strip() for ln in defects.splitlines() if ln.strip()]

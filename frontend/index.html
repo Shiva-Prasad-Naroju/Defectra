@@ -130,69 +130,7 @@
 
         <!-- OLD WORKFLOW ENGINE REMOVED — replaced by fdemo cards below -->
         <div class="fdemo reveal-on-scroll" style="--reveal-i:1">
-          <!-- ═══ FEATURE 1: AI Analysis (PMO) ═══ -->
-          <div class="fdemo__card fdemo__card--ai">
-            <div class="fdemo__header">
-              <span class="fdemo__badge fdemo__badge--violet">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 19h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                AI Analysis
-              </span>
-            </div>
-            <div class="fdemo__scene fdemo__scene--image" aria-hidden="true">
-              <svg class="fdemo__wall" viewBox="0 0 320 200" fill="none">
-                <rect x="0" y="0" width="320" height="200" rx="4" fill="#f5f3ff"/>
-                <rect x="0" y="0" width="320" height="200" rx="4" stroke="#e9d5ff" stroke-width="1"/>
-                <path d="M40 140h240M60 100h200M80 60h160" stroke="#c4b5fd" stroke-width="0.8" stroke-dasharray="4 3"/>
-                <rect x="100" y="72" width="120" height="56" rx="4" fill="rgba(124,58,237,0.08)" stroke="#a78bfa" stroke-width="1"/>
-                <text x="160" y="104" text-anchor="middle" fill="#6d28d9" font-size="10" font-family="system-ui,sans-serif" font-weight="600">PMO report</text>
-              </svg>
-            </div>
-            <div class="fdemo__steps">
-              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Upload photo</span></div>
-              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
-              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>Gemma inspects</span></div>
-              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
-              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Engineer brief</span></div>
-            </div>
-            <a href="/dashboard/ai-analysis/" class="fdemo__cta fdemo__cta--violet" data-tooltip="Open AI Analysis">Try AI Analysis</a>
-          </div>
-
-          <!-- ═══ FEATURE 2: Image Analysis ═══ -->
-          <div class="fdemo__card fdemo__card--image">
-            <div class="fdemo__header">
-              <span class="fdemo__badge fdemo__badge--blue">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4 6l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Image Analysis
-              </span>
-            </div>
-            <div class="fdemo__scene fdemo__scene--image" aria-hidden="true">
-              <svg class="fdemo__wall" viewBox="0 0 320 200" fill="none">
-                <rect x="0" y="0" width="320" height="200" rx="4" fill="#f1f5f9"/>
-                <rect x="0" y="0" width="320" height="200" rx="4" stroke="#e2e8f0" stroke-width="1"/>
-                <path d="M0 40h320M0 80h320M0 120h320M0 160h320" stroke="#e8ecf1" stroke-width="0.6"/>
-                <path d="M80 0v40M200 40v40M80 80v40M240 120v40M120 160v40" stroke="#e8ecf1" stroke-width="0.6"/>
-                <path d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-                <path d="M210 30L220 58 214 80 226 108 218 132 230 150" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
-              </svg>
-              <div class="fdemo__scanline"></div>
-              <svg class="fdemo__seg" viewBox="0 0 320 200" fill="none">
-                <defs><filter id="fglow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-                <path class="fdemo__crack fdemo__crack--a" d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" filter="url(#fglow)"/>
-                <path class="fdemo__crack fdemo__crack--b" d="M210 30L220 58 214 80 226 108 218 132 230 150" filter="url(#fglow)"/>
-                <polygon class="fdemo__region" points="88,38 108,28 114,68 106,96 112,130 94,160 86,150 80,100 90,60"/>
-              </svg>
-            </div>
-            <div class="fdemo__steps">
-              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Upload images</span></div>
-              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
-              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>AI detects</span></div>
-              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
-              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Review results</span></div>
-            </div>
-            <a href="/dashboard/image-analysis/" class="fdemo__cta" data-tooltip="Open Image Analysis">Try Image Analysis</a>
-          </div>
-
-          <!-- ═══ FEATURE 3: Live Inspection ═══ -->
+          <!-- ═══ FEATURE 1: Live Inspection ═══ -->
           <div class="fdemo__card fdemo__card--live">
             <div class="fdemo__header">
               <span class="fdemo__badge fdemo__badge--green"><span class="fdemo__live-dot"></span>Live AI Inspection</span>
@@ -242,6 +180,68 @@
               <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Analyze</span></div>
             </div>
             <a href="/dashboard/live/" class="fdemo__cta fdemo__cta--green" data-tooltip="Open Live Inspection">Try Live Inspection</a>
+          </div>
+
+          <!-- ═══ FEATURE 2: AI Analysis (PMO) ═══ -->
+          <div class="fdemo__card fdemo__card--ai">
+            <div class="fdemo__header">
+              <span class="fdemo__badge fdemo__badge--violet">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 19h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                AI Analysis
+              </span>
+            </div>
+            <div class="fdemo__scene fdemo__scene--image" aria-hidden="true">
+              <svg class="fdemo__wall" viewBox="0 0 320 200" fill="none">
+                <rect x="0" y="0" width="320" height="200" rx="4" fill="#f5f3ff"/>
+                <rect x="0" y="0" width="320" height="200" rx="4" stroke="#e9d5ff" stroke-width="1"/>
+                <path d="M40 140h240M60 100h200M80 60h160" stroke="#c4b5fd" stroke-width="0.8" stroke-dasharray="4 3"/>
+                <rect x="100" y="72" width="120" height="56" rx="4" fill="rgba(124,58,237,0.08)" stroke="#a78bfa" stroke-width="1"/>
+                <text x="160" y="100" text-anchor="middle" fill="#6d28d9" font-size="10" font-family="system-ui,sans-serif" font-weight="600"><tspan x="160" dy="-0.25em">Inspection</tspan><tspan x="160" dy="1.15em">Report</tspan></text>
+              </svg>
+            </div>
+            <div class="fdemo__steps">
+              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Upload Photo</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>AI Inspects</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Engineer Report</span></div>
+            </div>
+            <a href="/dashboard/ai-analysis/" class="fdemo__cta fdemo__cta--violet" data-tooltip="Open AI Analysis">Try AI Analysis</a>
+          </div>
+
+          <!-- ═══ FEATURE 3: Image Analysis ═══ -->
+          <div class="fdemo__card fdemo__card--image">
+            <div class="fdemo__header">
+              <span class="fdemo__badge fdemo__badge--blue">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4 6l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Image Analysis
+              </span>
+            </div>
+            <div class="fdemo__scene fdemo__scene--image" aria-hidden="true">
+              <svg class="fdemo__wall" viewBox="0 0 320 200" fill="none">
+                <rect x="0" y="0" width="320" height="200" rx="4" fill="#f1f5f9"/>
+                <rect x="0" y="0" width="320" height="200" rx="4" stroke="#e2e8f0" stroke-width="1"/>
+                <path d="M0 40h320M0 80h320M0 120h320M0 160h320" stroke="#e8ecf1" stroke-width="0.6"/>
+                <path d="M80 0v40M200 40v40M80 80v40M240 120v40M120 160v40" stroke="#e8ecf1" stroke-width="0.6"/>
+                <path d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                <path d="M210 30L220 58 214 80 226 108 218 132 230 150" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+              </svg>
+              <div class="fdemo__scanline"></div>
+              <svg class="fdemo__seg" viewBox="0 0 320 200" fill="none">
+                <defs><filter id="fglow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                <path class="fdemo__crack fdemo__crack--a" d="M100 18L96 48 102 68 94 96 100 120 92 150 98 182" filter="url(#fglow)"/>
+                <path class="fdemo__crack fdemo__crack--b" d="M210 30L220 58 214 80 226 108 218 132 230 150" filter="url(#fglow)"/>
+                <polygon class="fdemo__region" points="88,38 108,28 114,68 106,96 112,130 94,160 86,150 80,100 90,60"/>
+              </svg>
+            </div>
+            <div class="fdemo__steps">
+              <div class="fdemo__step"><span class="fdemo__step-num">1</span><span>Upload Images</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">2</span><span>AI Detects</span></div>
+              <span class="fdemo__arrow" aria-hidden="true">&rarr;</span>
+              <div class="fdemo__step"><span class="fdemo__step-num">3</span><span>Review results</span></div>
+            </div>
+            <a href="/dashboard/image-analysis/" class="fdemo__cta" data-tooltip="Open Image Analysis">Try Image Analysis</a>
           </div>
         </div>
       </div>
@@ -403,7 +403,7 @@
           <p class="landing-section-lead">Everything you need to get started with AI-powered inspection.</p>
         </div>
         <div class="faq-list">
-          <details class="faq-item reveal-on-scroll is-open" style="--reveal-i:0" open>
+          <details class="faq-item reveal-on-scroll" style="--reveal-i:0">
             <summary class="faq-question">
               <span>What types of defects can be detected?</span>
               <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>

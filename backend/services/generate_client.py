@@ -21,6 +21,20 @@ def _data_url(image_bytes: bytes, mime_type: str) -> str:
     return f"data:{mime_type};base64,{b64}"
 
 
+def _vllm_404_hint(status_code: int, url: str) -> str:
+    """404 on /v1/chat/completions usually means VLLM_BASE_URL points at FastAPI (wrong port)."""
+    if status_code != 404:
+        return ""
+    if "/v1/chat/completions" not in url:
+        return ""
+    return (
+        " — Likely cause: Defectra (uvicorn) and vLLM share the same port, so POST /v1/chat/completions "
+        "hits FastAPI (404). Fix: run vLLM on one port and Defectra on another (e.g. vLLM :8000 with "
+        "VLLM_BASE_URL=http://127.0.0.1:8000, uvicorn on :8010 and VITE_API_PROXY_TARGET=http://127.0.0.1:8010), "
+        "or run vLLM on :8001 and set VLLM_BASE_URL=http://127.0.0.1:8001."
+    )
+
+
 def _format_http_error(resp: httpx.Response) -> str:
     try:
         err: Any = resp.json()
@@ -158,7 +172,7 @@ async def generate_inspection_report(
             ) from e
 
         if resp.status_code >= 400:
-            raise RuntimeError(_format_http_error(resp))
+            raise RuntimeError(_format_http_error(resp) + _vllm_404_hint(resp.status_code, url))
 
         try:
             data = resp.json()
@@ -214,6 +228,7 @@ async def stream_inspection_report_deltas(
                         detail = err_bytes.decode("utf-8", errors="replace")[:2000]
                     raise RuntimeError(
                         f"vLLM error ({resp.status_code}): {detail}"
+                        + _vllm_404_hint(resp.status_code, url)
                     )
 
                 async for line in resp.aiter_lines():
@@ -283,6 +298,7 @@ async def stream_text_chat_completion_deltas(
                         detail = err_bytes.decode("utf-8", errors="replace")[:2000]
                     raise RuntimeError(
                         f"vLLM error ({resp.status_code}): {detail}"
+                        + _vllm_404_hint(resp.status_code, url)
                     )
 
                 async for line in resp.aiter_lines():
@@ -348,7 +364,7 @@ async def generate_text_chat_completion(
             ) from e
 
         if resp.status_code >= 400:
-            raise RuntimeError(_format_http_error(resp))
+            raise RuntimeError(_format_http_error(resp) + _vllm_404_hint(resp.status_code, url))
 
         try:
             data = resp.json()

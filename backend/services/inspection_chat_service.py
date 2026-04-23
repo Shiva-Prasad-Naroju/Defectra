@@ -9,11 +9,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from config import get_settings
-from prompt import (
-    INSPECTION_ASSISTANT_SYSTEM,
-    PMO_DEFECT_INSPECTION_PROMPT,
-    vision_prompt_with_site_context,
-)
+from prompt import INSPECTION_ASSISTANT_SYSTEM, build_vision_instruction_prompt
 from services.generate_client import (
     generate_inspection_report,
     generate_text_chat_completion,
@@ -21,6 +17,10 @@ from services.generate_client import (
     stream_text_chat_completion_deltas,
 )
 from services import inspection_sessions
+from services.inspection_intent import (
+    classify_inspection_intent,
+    followup_intent_system_suffix,
+)
 from services.inspection_markdown import parse_inspection_sections
 
 def _max_image_bytes() -> int:
@@ -44,58 +44,13 @@ def site_from_json(raw: str | None) -> dict[str, str]:
         return {}
 
 
-def _message_suggests_safety_or_risk(message: str) -> bool:
-    m = (message or "").strip().lower()
-    if not m:
-        return False
-    needles = (
-        "safe",
-        "safety",
-        "hazard",
-        "risk",
-        "danger",
-        "okay",
-        "ok to",
-        "electrocut",
-        "fire risk",
-        "trip hazard",
-        "compliant",
-        "code",
-    )
-    return any(x in m for x in needles)
-
-
 def _vision_instructions(*, site: dict[str, str], message: str) -> str:
-    """Build image-turn instructions: full PMO report when no message; same ## structure plus focused answer when user asks."""
-    base = PMO_DEFECT_INSPECTION_PROMPT
-    msg = (message or "").strip()
-    if msg:
-        safety_extra = ""
-        if _message_suggests_safety_or_risk(msg):
-            safety_extra = (
-                "- The user’s question relates to **safety / risk / compliance framing**: you **must** include `## Risk Assessment` "
-                "(after Key Defects, before Severity Assessment) per the PMO rules. **At least 4** Key Defects top-level bullets when the photo supports them.\n"
-            )
-        base = (
-            "You are a senior construction PMO inspector reviewing a site photo.\n\n"
-            "The user asked a specific question (below). You must still produce a full, detailed inspection report "
-            "using the same ## section headings and rules as in the PMO instructions that follow this block—do not reply with only a short paragraph.\n\n"
-            "How to blend intent:\n"
-            "- In ## Summary: **one short paragraph** by default (scope + one-line answer to the question). Obey the **6-sentence max** for Summary; do not list defects or long arguments there.\n"
-            f"{safety_extra}"
-            "- Fill ## Key Defects with the **nested bullet pattern** (bold label + **Evidence / Where / Significance** on every defect)—that section carries most visible detail, not the Summary.\n"
-            "- Fill ## Severity Assessment, ## Priority Ranking, ## Recommended Actions, and ## Confidence Level with clear, visible-evidence-backed detail.\n"
-            "- Ground every claim in what is visible; if the photo cannot support a claim, say so.\n"
-            "- Finish with ## Follow-up Questions (3–5 bullets) specific to this site.\n\n"
-            f"User question: {msg}\n\n"
-            "--- PMO report rules (apply in full) ---\n"
-            f"{PMO_DEFECT_INSPECTION_PROMPT}"
-        )
-    return vision_prompt_with_site_context(
-        base_prompt=base,
-        description=site.get("description", ""),
-        location=site.get("location", ""),
-        issue_type=site.get("issue_type", ""),
+    """Build image-turn instructions: intent-aware (see ``build_vision_instruction_prompt``)."""
+    intent = classify_inspection_intent(message)
+    return build_vision_instruction_prompt(
+        intent=intent,
+        message=message,
+        site=site,
     )
 
 
@@ -148,6 +103,7 @@ async def _vision_turn(
         "reply_markdown": report,
         "structured": sess.structured,
         "used_vision": True,
+        "inspection_intent": classify_inspection_intent(message),
     }
 
 
@@ -162,11 +118,12 @@ async def _followup_turn(sess: inspection_sessions.InspectionSession, *, message
         raise HTTPException(400, detail="Type a message or attach a photo to analyze.")
 
     hist = sess.conversation_after_analysis
+    intent_suffix = followup_intent_system_suffix(msg)
     messages: list[dict[str, Any]] = [
         {
             "role": "system",
             "content": (
-                f"{INSPECTION_ASSISTANT_SYSTEM}\n\n"
+                f"{INSPECTION_ASSISTANT_SYSTEM}{intent_suffix}\n\n"
                 "--- PRIOR IMAGE ANALYSIS (authoritative) ---\n"
                 f"{sess.analysis_markdown}"
             ),
@@ -188,6 +145,7 @@ async def _followup_turn(sess: inspection_sessions.InspectionSession, *, message
         "reply_markdown": answer,
         "structured": None,
         "used_vision": False,
+        "inspection_intent": classify_inspection_intent(msg),
     }
 
 
@@ -269,6 +227,7 @@ async def iter_inspection_chat_sse(
                 sess.image_bytes = image_bytes
                 sess.site_notes = dict(site)
                 instructions = _vision_instructions(site=site, message=message)
+                vision_intent = classify_inspection_intent(message)
                 vision_buf: list[str] = []
                 try:
                     async for piece in stream_inspection_report_deltas(
@@ -282,7 +241,9 @@ async def iter_inspection_chat_sse(
                     sess.analysis_markdown = text
                     sess.structured = parse_inspection_sections(text)
                     sess.conversation_after_analysis.clear()
-                    yield _sse({"type": "done", "used_vision": True})
+                    yield _sse(
+                        {"type": "done", "used_vision": True, "inspection_intent": vision_intent}
+                    )
                 except Exception as e:
                     sess.image_mime = None
                     sess.image_bytes = None
@@ -317,11 +278,12 @@ async def iter_inspection_chat_sse(
                 return
 
             hist = sess.conversation_after_analysis
+            follow_suffix = followup_intent_system_suffix(msg)
             messages: list[dict[str, Any]] = [
                 {
                     "role": "system",
                     "content": (
-                        f"{INSPECTION_ASSISTANT_SYSTEM}\n\n"
+                        f"{INSPECTION_ASSISTANT_SYSTEM}{follow_suffix}\n\n"
                         "--- PRIOR IMAGE ANALYSIS (authoritative) ---\n"
                         f"{sess.analysis_markdown}"
                     ),
@@ -342,7 +304,13 @@ async def iter_inspection_chat_sse(
                 answer = "".join(follow_buf)
                 hist.append({"role": "user", "content": msg})
                 hist.append({"role": "assistant", "content": answer})
-                yield _sse({"type": "done", "used_vision": False})
+                yield _sse(
+                    {
+                        "type": "done",
+                        "used_vision": False,
+                        "inspection_intent": classify_inspection_intent(msg),
+                    }
+                )
             except Exception as e:
                 yield _sse({"type": "error", "detail": str(e)})
             yield b"data: [DONE]\n\n"

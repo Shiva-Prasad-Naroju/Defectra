@@ -1,0 +1,8 @@
+{
+  "name": "defectra-inspection-pdf",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "puppeteer": "^24.2.0"
+  }
+}

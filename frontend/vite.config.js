@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, repoRoot, ""),
     ...loadEnv(mode, __dirname, ""),
   };
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8000";
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8010";
   const apiProxy = apiProxyOptions(apiProxyTarget);
 
   return {
@@ -35,12 +35,17 @@ export default defineConfig(({ mode }) => {
     base: "/",
     server: {
       host: true,
+      // Default 5173 avoids conflict with another app on :3000. Override: npm run dev -- --port 5174
+      port: 5173,
+      strictPort: false,
       proxy: {
         "/api": apiProxy,
       },
     },
     preview: {
       host: true,
+      port: 5173,
+      strictPort: false,
       proxy: {
         "/api": apiProxy,
       },

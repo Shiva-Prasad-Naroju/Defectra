@@ -2,18 +2,22 @@
 
 Run from the backend directory:
 
-    uvicorn main:app --reload --port 8000
+    uvicorn main:app --reload --host 0.0.0.0 --port 8010
 
-If the dev machine uses WSL/Docker for the API, point Vite at it with VITE_API_PROXY_TARGET
-(see repo root `.env`). Use --host 0.0.0.0 only when you need other devices to call
-this API directly (default 127.0.0.1 is enough for the Vite /api proxy on the same host).
+Use port **8010** for Defectra when vLLM already uses **8000** on the same machine
+(`VLLM_BASE_URL=http://127.0.0.1:8000` in `.env`). If vLLM is on another port, set
+`VLLM_BASE_URL` and match `VITE_API_PROXY_TARGET` to this app’s port.
+
+Point Vite at this API with `VITE_API_PROXY_TARGET` (see repo root `.env`).
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +29,7 @@ if _backend_dir not in sys.path:
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from config import get_settings
@@ -267,6 +271,60 @@ async def chat_message_stream(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+        },
+    )
+
+
+class InspectionPdfTurnModel(BaseModel):
+    role: str = Field(..., min_length=1, max_length=32)
+    text: str = Field("", max_length=600_000)
+    image: str | None = Field(None, max_length=45_000_000)
+
+
+class InspectionPdfRequestModel(BaseModel):
+    session_id: str = Field("", max_length=200)
+    transcript: list[InspectionPdfTurnModel] = Field(..., min_length=1, max_length=150)
+
+
+@app.post("/api/chat/inspection-pdf", tags=["inspection-chat"])
+async def inspection_chat_pdf(body: InspectionPdfRequestModel) -> Response:
+    """Build HTML with inlined JPEG data URLs, render with Puppeteer (Node), return PDF bytes."""
+    from services import inspection_pdf_html
+    from services import inspection_pdf_puppeteer
+
+    for t in body.transcript:
+        r = (t.role or "").strip().lower()
+        if r not in ("user", "assistant"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid transcript role {t.role!r} (expected user or assistant).",
+            )
+
+    rows = [m.model_dump() for m in body.transcript]
+    html, _n_inlined = inspection_pdf_html.build_inspection_pdf_html(
+        transcript=rows,
+        session_id=body.session_id.strip(),
+    )
+    if os.getenv("INSPECTION_PDF_LOG_HTML", "").lower() in ("1", "true", "yes"):
+        logger.info("inspection_pdf full HTML (truncated to 300k): %s", html[:300_000])
+
+    try:
+        pdf_bytes = inspection_pdf_puppeteer.render_html_to_pdf_bytes(html)
+    except RuntimeError as e:
+        logger.warning("inspection PDF render failed: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail=str(e),
+        ) from e
+
+    sid_short = (body.session_id or "local").strip()[:8] or "local"
+    stamp = datetime.now(timezone.utc).date().isoformat()
+    fname = f"SiteSureLabs-Inspection-Report-{sid_short}-{stamp}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{fname}"',
         },
     )
 

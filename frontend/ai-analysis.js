@@ -4,8 +4,8 @@
  */
 
 import { marked } from "marked";
-import { jsPDF } from "jspdf";
 
+import { downloadInspectionPdfFromApi } from "./lib/inspection-pdf-api.js";
 import { isHeicLike, normalizeImageFileForUpload } from "./heic-utils.js";
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -73,13 +73,54 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-/** Only allow stored data URLs we render as <img src> (mitigates tampered localStorage). */
+/**
+ * Raster image data URLs we persist and render.
+ * (Mitigates tampered localStorage; excludes svg+xml and exotic vectors.)
+ */
 function isSafeStoredImageDataUrl(s) {
   return (
     typeof s === "string" &&
     s.length > 32 &&
-    /^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(s)
+    /^data:image\/(png|jpe?g|pjpeg|webp|gif|avif|bmp);base64,/i.test(s) &&
+    !/data:image\/svg/i.test(s)
   );
+}
+
+/** Any non-SVG data-URL image from the file picker / DOM (broader than persist allowlist). */
+function isRenderableRasterDataUrl(s) {
+  return (
+    typeof s === "string" &&
+    s.length > 200 &&
+    /^data:image\//i.test(s) &&
+    /base64,/i.test(s) &&
+    !/data:image\/svg/i.test(s)
+  );
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const u = r.result;
+      if (typeof u === "string" && u.startsWith("data:image/")) resolve(u);
+      else reject(new Error("Could not read image."));
+    };
+    r.onerror = () => reject(r.error || new Error("Could not read image."));
+    r.readAsDataURL(file);
+  });
+}
+
+async function readBlobAsDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const u = r.result;
+      if (typeof u === "string") resolve(u);
+      else reject(new Error("Could not read image."));
+    };
+    r.onerror = () => reject(r.error || new Error("Could not read image."));
+    r.readAsDataURL(blob);
+  });
 }
 
 /** Resize to fit in localStorage; keeps JPEG for smaller payloads. */
@@ -95,7 +136,7 @@ function compressImageDataUrl(dataUrl, maxSide = 1280, quality = 0.82) {
         const w = img.naturalWidth;
         const h = img.naturalHeight;
         if (!w || !h) {
-          resolve("");
+          resolve(dataUrl);
           return;
         }
         const scale = Math.min(1, maxSide / Math.max(w, h));
@@ -106,7 +147,7 @@ function compressImageDataUrl(dataUrl, maxSide = 1280, quality = 0.82) {
         canvas.height = ch;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          resolve("");
+          resolve(dataUrl);
           return;
         }
         ctx.drawImage(img, 0, 0, cw, ch);
@@ -116,7 +157,7 @@ function compressImageDataUrl(dataUrl, maxSide = 1280, quality = 0.82) {
         resolve(dataUrl);
       }
     };
-    img.onerror = () => resolve("");
+    img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
   });
 }
@@ -136,15 +177,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const pendingWrap = document.getElementById("gem-pending");
   const pendingImg = document.getElementById("gem-pending-img");
   const pendingRemove = document.getElementById("gem-pending-remove");
+  const photoReadyHint = document.getElementById("gem-photo-ready-hint");
   const downloadBtn = document.getElementById("gem-download-btn");
-  const guidedState = document.getElementById("gem-guided-state");
-  const guidedImage = document.getElementById("gem-guided-img");
-  const guidedStatus = document.getElementById("gem-guided-status");
-  const guidedTitle = document.getElementById("gem-guided-title");
-  const guidedLoading = document.getElementById("gem-guided-loading");
-  const guidedFindings = document.getElementById("gem-guided-findings");
-  const guidedChipHost = document.getElementById("gem-guided-chips");
 
+  // Inspection stage (analysis-first UI). Shown between "image attached" and "first AI report".
+  const stageEl = document.getElementById("cht-stage");
+  const stageImg = document.getElementById("cht-stage-img");
+  const stageStartBtn = document.getElementById("cht-stage-start");
+  const stageReplaceBtn = document.getElementById("cht-stage-replace");
+  const stageActions = document.getElementById("cht-stage-actions");
+  const stageLoading = document.getElementById("cht-stage-loading");
+
+  /**
+   * Flow states (the sole source of truth for pre-analysis vs chat visibility):
+   *   idle              → empty upload card.
+   *   image_uploaded    → inspection stage (image + "Start Analysis"); dock hidden.
+   *   analyzing         → inspection stage (image + spinner); dock hidden.
+   *   analysis_complete → chat thread + dock visible; stage hidden forever for this session.
+   */
+  let flowState = "idle";
   let sessionId = "";
   let hasAnalysis = false;
   let pendingFile = null;
@@ -153,9 +204,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let busy = false;
   let activeController = null;
   let stopRequested = false;
-  let guidedTimer = null;
-  let guidedStageComplete = false;
-
   const showError = (msg) => {
     if (!workspaceError) return;
     workspaceError.textContent = msg;
@@ -318,92 +366,82 @@ document.addEventListener("DOMContentLoaded", () => {
     inputEl.style.height = `${Math.min(maxPx, Math.max(minPx, sh))}px`;
   };
 
-  const clearGuidedTimer = () => {
-    if (guidedTimer) {
-      clearTimeout(guidedTimer);
-      guidedTimer = null;
-    }
-  };
-
-  const setGuidedLoadingUi = () => {
-    guidedStageComplete = false;
-    guidedStatus && (guidedStatus.innerHTML = "Analyzing image<span class=\"cht-guided__dots\" aria-hidden=\"true\"><span></span><span></span><span></span></span>");
-    if (guidedTitle) guidedTitle.textContent = "Analyzing image...";
-    if (guidedLoading) {
-      guidedLoading.textContent = "Building preliminary inspection context from the uploaded photo.";
-      guidedLoading.classList.remove("hidden");
-      guidedLoading.removeAttribute("hidden");
-    }
-    if (guidedFindings) {
-      guidedFindings.classList.add("hidden");
-      guidedFindings.setAttribute("hidden", "");
-    }
-  };
-
-  const setGuidedCompleteUi = () => {
-    guidedStageComplete = true;
-    if (guidedStatus) guidedStatus.textContent = "AI ready for inspection";
-    if (guidedTitle) guidedTitle.textContent = "Preliminary Findings";
-    if (guidedLoading) {
-      guidedLoading.classList.add("hidden");
-      guidedLoading.setAttribute("hidden", "");
-    }
-    if (guidedFindings) {
-      guidedFindings.classList.remove("hidden");
-      guidedFindings.removeAttribute("hidden");
-    }
-  };
-
-  const beginGuidedAnalysisPreview = () => {
-    clearGuidedTimer();
-    setGuidedLoadingUi();
-    guidedTimer = setTimeout(() => {
-      setGuidedCompleteUi();
-      guidedTimer = null;
-    }, 1400);
-  };
-
-  /** Past upload gate: thread messages exist or user has attached an image (composer visible). */
+  /**
+   * Single source of truth for which surface is visible. Driven by `flowState`.
+   * - `idle`              → upload card, no stage, dock blurred (legacy `awaiting-upload`).
+   * - `image_uploaded`    → inspection stage w/ "Start Analysis"; dock hidden.
+   * - `analyzing`         → inspection stage w/ spinner; dock hidden.
+   * - `analysis_complete` → chat thread + dock. Stage hidden; legacy blur off.
+   */
   function syncShellLayout() {
-    const hasMessages = messagesEl && messagesEl.children.length > 0;
-    const hasPendingImage = Boolean(pendingFile || pendingDataUrl);
-    const pastGate = hasMessages || hasPendingImage;
-    const showGuided = hasPendingImage && !hasMessages;
-    const awaiting = !pastGate;
-    shell?.classList.toggle("cht-shell--chatted", pastGate);
-    shell?.classList.toggle("cht-shell--awaiting-upload", awaiting);
+    if (!shell) return;
+
+    const inspecting = flowState === "image_uploaded" || flowState === "analyzing";
+    const chatting = flowState === "analysis_complete";
+    const idle = flowState === "idle";
+
+    shell.classList.toggle("cht-shell--inspecting", inspecting);
+    shell.classList.toggle("cht-shell--chatted", chatting);
+    shell.classList.toggle("cht-shell--awaiting-upload", idle);
+    shell.classList.remove("cht-shell--photo-ready");
+
     if (emptyState) {
-      emptyState.classList.toggle("hidden", pastGate);
-      if (pastGate) emptyState.setAttribute("hidden", "");
+      emptyState.classList.toggle("hidden", !idle);
+      if (!idle) emptyState.setAttribute("hidden", "");
       else emptyState.removeAttribute("hidden");
     }
+
+    if (stageEl) {
+      stageEl.classList.toggle("hidden", !inspecting);
+      if (inspecting) stageEl.removeAttribute("hidden");
+      else stageEl.setAttribute("hidden", "");
+    }
+
+    // Dock is only interactive + focusable in chat state.
     if (dockEl) {
-      if (awaiting) dockEl.setAttribute("inert", "");
-      else dockEl.removeAttribute("inert");
+      if (chatting) dockEl.removeAttribute("inert");
+      else dockEl.setAttribute("inert", "");
     }
     if (topbarActionsEl) {
-      if (awaiting) topbarActionsEl.setAttribute("inert", "");
-      else topbarActionsEl.removeAttribute("inert");
+      if (chatting) topbarActionsEl.removeAttribute("inert");
+      else topbarActionsEl.setAttribute("inert", "");
     }
 
-    if (guidedState) {
-      guidedState.classList.toggle("hidden", !showGuided);
-      guidedState.classList.toggle("is-visible", showGuided);
-      if (showGuided) guidedState.removeAttribute("hidden");
-      else guidedState.setAttribute("hidden", "");
-    }
-
-    if (showGuided && guidedImage && pendingDataUrl) {
-      guidedImage.src = pendingDataUrl;
-      if (!guidedStageComplete) beginGuidedAnalysisPreview();
-    } else {
-      clearGuidedTimer();
-      if (!hasPendingImage) {
-        setGuidedLoadingUi();
-        guidedImage && (guidedImage.src = "");
+    // Stage loading/actions toggle.
+    if (stageActions && stageLoading) {
+      const showLoading = flowState === "analyzing";
+      stageActions.classList.toggle("hidden", showLoading);
+      stageLoading.classList.toggle("hidden", !showLoading);
+      if (showLoading) {
+        stageLoading.removeAttribute("hidden");
+        stageActions.setAttribute("hidden", "");
+        if (stageStartBtn) stageStartBtn.disabled = true;
+      } else {
+        stageLoading.setAttribute("hidden", "");
+        stageActions.removeAttribute("hidden");
+        if (stageStartBtn) stageStartBtn.disabled = false;
       }
     }
+
+    // Dead legacy element — keep hidden.
+    if (photoReadyHint) {
+      photoReadyHint.classList.add("hidden");
+      photoReadyHint.setAttribute("hidden", "");
+    }
+
+    if (chatting) {
+      requestAnimationFrame(() => {
+        inputEl?.focus();
+        syncComposerHeight();
+      });
+    }
   }
+
+  const setFlowState = (next) => {
+    if (flowState === next) return;
+    flowState = next;
+    syncShellLayout();
+  };
 
   const appendMessage = (role, innerHtml) => {
     const letter = role === "user" ? "Y" : "AI";
@@ -545,7 +583,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const buildUserHtml = (text, dataUrl) => {
     const t = escapeHtml(text || "").replace(/\n/g, "<br>");
-    const safe = dataUrl && isSafeStoredImageDataUrl(dataUrl) ? dataUrl : "";
+    const safe =
+      dataUrl && (isSafeStoredImageDataUrl(dataUrl) || isRenderableRasterDataUrl(dataUrl))
+        ? dataUrl
+        : "";
     const img = safe
       ? `<img class="insp-msg__img insp-msg__img--clickable" src="${safe}" alt="Uploaded site photo" width="280" height="200" data-preview-src="${safe}">`
       : "";
@@ -558,11 +599,17 @@ document.addEventListener("DOMContentLoaded", () => {
     pendingFile = file;
     if (!file) {
       pendingDataUrl = "";
-      guidedStageComplete = false;
       pendingWrap?.classList.add("hidden");
       pendingWrap?.setAttribute("hidden", "");
       if (fileInput) fileInput.value = "";
-      syncShellLayout();
+      // Keep the staged preview image during `analyzing` — the spec says the
+      // image must remain visible while the spinner runs.
+      if (flowState === "image_uploaded") {
+        if (stageImg) stageImg.src = "";
+        setFlowState("idle");
+      } else {
+        syncShellLayout();
+      }
       return;
     }
     const r = new FileReader();
@@ -570,15 +617,24 @@ document.addEventListener("DOMContentLoaded", () => {
       const u = ev.target?.result;
       if (typeof u === "string") {
         pendingDataUrl = u;
-        guidedStageComplete = false;
         if (pendingImg) {
           pendingImg.src = u;
           pendingImg.alt = "Attached preview";
         }
         pendingWrap?.classList.remove("hidden");
         pendingWrap?.removeAttribute("hidden");
+        if (stageImg) {
+          stageImg.src = u;
+          stageImg.alt = "Uploaded site photo preview";
+        }
       }
-      syncShellLayout();
+      // Before the first analysis: route the upload into the inspection stage.
+      // After the first analysis: keep chat visible, show the pending chip in the dock.
+      if (!hasAnalysis) {
+        setFlowState("image_uploaded");
+      } else {
+        syncShellLayout();
+      }
     };
     r.readAsDataURL(file);
   };
@@ -611,7 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
       showError(
         isLikelyNetworkFailure(e)
-          ? "Could not reach the API. Start the FastAPI backend (port 8000) and keep Vite dev running."
+          ? "Could not reach the API. Start the FastAPI backend (same port as VITE_API_PROXY_TARGET in .env, often 8010) and keep Vite dev running."
           : String(e.message || e),
       );
     }
@@ -634,6 +690,8 @@ document.addEventListener("DOMContentLoaded", () => {
     pendingDataUrl = "";
     transcript = [];
     if (messagesEl) messagesEl.innerHTML = "";
+    if (stageImg) stageImg.src = "";
+    flowState = "idle";
     setPending(null);
     if (inputEl) inputEl.value = "";
     syncComposerHeight();
@@ -769,9 +827,29 @@ document.addEventListener("DOMContentLoaded", () => {
     activeController = new AbortController();
     refreshSendButton();
 
-    // Snapshot file before clearing UI
+    // Analysis-first: the moment a first-analysis send begins, reveal the
+    // chat surface so the user watches the AI response stream in live,
+    // rather than waiting on the stage for the whole reply.
+    const isFirstAnalysisSend = !hasAnalysis && Boolean(pendingFile);
+    if (isFirstAnalysisSend) {
+      setFlowState("analysis_complete");
+    }
+
+    // Snapshot file before clearing UI — always have bytes for transcript + PDF (FileReader is async).
     const fileToSend = pendingFile;
-    const dataUrlSnapshot = pendingDataUrl;
+    let dataUrlSnapshot = pendingDataUrl;
+    if (fileToSend) {
+      if (!dataUrlSnapshot || !String(dataUrlSnapshot).startsWith("data:image/")) {
+        try {
+          dataUrlSnapshot = await readFileAsDataUrl(fileToSend);
+        } catch {
+          showError("Could not read the attached image. Wait for the preview, then try again.");
+          busy = false;
+          refreshSendButton();
+          return;
+        }
+      }
+    }
 
     appendMessage("user", buildUserHtml(text, fileToSend ? dataUrlSnapshot : ""));
     recordTx("user", text, { image: fileToSend ? dataUrlSnapshot : null });
@@ -859,93 +937,56 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const downloadMd = () => {
-    if (!transcript.length) return;
-
-    const toPlain = (md) =>
-      String(md || "")
-        .replace(/```[\s\S]*?```/g, "\n[code block]\n")
-        .replace(/`([^`]+)`/g, "$1")
-        .replace(/^#{1,6}\s*/gm, "")
-        .replace(/^\s*[-*+]\s+/gm, "- ")
-        .replace(/^\s*\d+\.\s+/gm, "- ")
-        .replace(/\*\*([^*]+)\*\*/g, "$1")
-        .replace(/\*([^*]+)\*/g, "$1")
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 40;
-    const contentW = pageW - margin * 2;
-    let y = margin;
-
-    const ensureSpace = (need) => {
-      if (y + need <= pageH - margin) return;
-      doc.addPage();
-      y = margin;
-    };
-
-    // Premium header band
-    doc.setFillColor(16, 66, 152);
-    doc.rect(0, 0, pageW, 86, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("SiteSureLabs - AI Analysis Chat Export", margin, 36);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text(`Generated ${new Date().toLocaleString()}`, margin, 56);
-    doc.text(`Session ${sessionId ? sessionId.slice(0, 8) : "local"}`, margin, 72);
-    y = 104;
-    doc.setTextColor(31, 41, 55);
-
+  /**
+   * Copy user photos from the live thread into transcript when storage stripped `image`
+   * or MIME checks differed (e.g. AVIF preview in DOM).
+   */
+  const hydrateUserImagesFromDomForPdf = async () => {
+    if (!messagesEl) return;
+    const rows = [...messagesEl.querySelectorAll(".insp-msg--user")];
+    const imgs = rows.map((row) => row.querySelector(".insp-msg__body img"));
+    let ui = 0;
     for (const t of transcript) {
-      const roleLabel = t.role === "user" ? "You" : "AI Assistant";
-      const baseText = toPlain(t.text) || (t.image ? "Photo attached." : "");
-      const lines = doc.splitTextToSize(baseText, contentW - 24);
-      const lineH = 15;
-      let imageH = 0;
-      let imageMime = "";
-      if (t.role === "user" && t.image && isSafeStoredImageDataUrl(t.image)) {
-        imageMime = t.image.startsWith("data:image/png") ? "PNG" : "JPEG";
-        imageH = 150;
-      }
-      const textH = Math.max(lineH, lines.length * lineH);
-      const boxH = 20 + imageH + (imageH ? 10 : 0) + textH + 14;
-      ensureSpace(boxH + 22);
-
-      const boxX = margin;
-      const boxY = y;
-      doc.setFillColor(t.role === "user" ? 233 : 244, t.role === "user" ? 243 : 246, t.role === "user" ? 255 : 249);
-      doc.setDrawColor(223, 228, 236);
-      doc.roundedRect(boxX, boxY, contentW, boxH, 10, 10, "FD");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(t.role === "user" ? 17 : 30, t.role === "user" ? 78 : 64, t.role === "user" ? 150 : 122);
-      doc.text(roleLabel, boxX + 12, boxY + 16);
-
-      let bodyY = boxY + 34;
-      if (imageH && imageMime) {
+      if (t.role !== "user") continue;
+      let domSrc = imgs[ui]?.getAttribute("src") || imgs[ui]?.src || "";
+      ui += 1;
+      if (domSrc.startsWith("blob:")) {
         try {
-          doc.addImage(t.image, imageMime, boxX + 12, bodyY, contentW - 24, imageH);
-          bodyY += imageH + 10;
+          const b = await fetch(domSrc).then((r) => r.blob());
+          domSrc = await readBlobAsDataUrl(b);
         } catch {
-          // Keep PDF export resilient even if an embedded image fails.
+          continue;
         }
       }
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.setTextColor(31, 41, 55);
-      doc.text(lines, boxX + 12, bodyY + 11);
-      y += boxH + 14;
+      if (!domSrc.startsWith("data:image/")) continue;
+      if (t.image && (isSafeStoredImageDataUrl(t.image) || isRenderableRasterDataUrl(t.image)))
+        continue;
+      if (
+        isSafeStoredImageDataUrl(domSrc) ||
+        isRenderableRasterDataUrl(domSrc) ||
+        domSrc.length > 400
+      ) {
+        t.image = domSrc;
+      }
     }
+  };
 
-    doc.save(`inspection-chat-${(sessionId || Date.now().toString()).slice(0, 8)}.pdf`);
+  const downloadMd = async () => {
+    if (!transcript.length) return;
+    if (downloadBtn) downloadBtn.disabled = true;
+    try {
+      await hydrateUserImagesFromDomForPdf();
+      await downloadInspectionPdfFromApi({
+        apiBase: apiBase(),
+        sessionId,
+        transcript,
+      });
+    } catch (e) {
+      console.error("PDF export failed", e);
+      showError(`Couldn't export PDF — ${String(e?.message || e)}`);
+    } finally {
+      if (downloadBtn) downloadBtn.disabled = !transcript.length;
+    }
   };
 
   // ── Sidebar / session persistence ──────────────────────────────────────────
@@ -990,7 +1031,11 @@ document.addEventListener("DOMContentLoaded", () => {
       role: t.role,
       text: t.text || "",
       image:
-        t.role === "user" && t.image && isSafeStoredImageDataUrl(t.image) ? t.image : null,
+        t.role === "user" &&
+        t.image &&
+        (isSafeStoredImageDataUrl(t.image) || isRenderableRasterDataUrl(t.image))
+          ? t.image
+          : null,
     }));
     const sessions = loadStoredSessions();
     const idx = sessions.findIndex((s) => s.id === sessionId);
@@ -1007,7 +1052,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const label = m.role === "user" ? "You" : "AI";
       let innerHtml;
       if (m.role === "user") {
-        const stored = m.image && isSafeStoredImageDataUrl(m.image) ? m.image : "";
+        const stored =
+          m.image && (isSafeStoredImageDataUrl(m.image) || isRenderableRasterDataUrl(m.image))
+            ? m.image
+            : "";
         if (stored) {
           innerHtml = buildUserHtml(m.text || "", stored);
         } else {
@@ -1099,10 +1147,16 @@ document.addEventListener("DOMContentLoaded", () => {
         transcript = entry.msgs.map((m) => ({
           role: m.role,
           text: m.text || "",
-          image: m.image && isSafeStoredImageDataUrl(m.image) ? m.image : null,
+          image:
+            m.image && (isSafeStoredImageDataUrl(m.image) || isRenderableRasterDataUrl(m.image))
+              ? m.image
+              : null,
         }));
         if (messagesEl) messagesEl.innerHTML = "";
         renderRestoredMessages(entry.msgs);
+        // Restored sessions always bypass the inspection stage — user already
+        // has analysis history, we drop straight into chat mode.
+        flowState = entry.msgs.length ? "analysis_complete" : "idle";
         syncShellLayout();
         scrollDown(true);
         closeSidebar();
@@ -1172,15 +1226,29 @@ document.addEventListener("DOMContentLoaded", () => {
   pendingImg?.addEventListener("click", () => {
     if (pendingImg.src && pendingImg.src !== location.href) openLightbox(pendingImg.src);
   });
-  guidedChipHost?.addEventListener("click", (e) => {
-    const chip = e.target.closest("[data-guided-prompt]");
-    if (!chip || !inputEl) return;
-    const prompt = chip.getAttribute("data-guided-prompt");
-    if (!prompt) return;
-    inputEl.value = prompt;
-    syncComposerHeight();
-    inputEl.focus();
+
+  // Inspection stage: "Start Analysis" kicks off the vision call with no text
+  // payload (image-only). The stage switches to its loading state and stays
+  // pinned until the first AI report arrives, then chat is revealed.
+  stageStartBtn?.addEventListener("click", () => {
+    if (busy) return;
+    if (!pendingFile) {
+      showError("Attach a site photo before starting analysis.");
+      return;
+    }
+    if (inputEl) inputEl.value = "";
+    void send();
   });
+  stageReplaceBtn?.addEventListener("click", () => {
+    if (busy) return;
+    if (fileInput) fileInput.value = "";
+    fileInput?.click();
+  });
+  stageImg?.addEventListener("click", () => {
+    const src = stageImg.src || "";
+    if (src && src !== location.href) openLightbox(src);
+  });
+
   sendBtn?.addEventListener("click", () => void send());
   inputEl?.addEventListener("input", () => syncComposerHeight());
   inputEl?.addEventListener("focus", () => syncComposerHeight());

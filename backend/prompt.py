@@ -62,9 +62,6 @@ Use these section titles in order when they apply (omit only if truly not applic
 ## Recommended Actions
 - Ordered steps; label immediate vs can-wait; include verification on site where useful.
 
-## Confidence Level
-- Low / Medium / High; state limitations of photo-only review.
-
 ---
 
 ## Risk Assessment Mode (when the user asked about safety / hazards / risk)
@@ -77,17 +74,6 @@ Use **short bullets or numbered lines** (not long paragraphs). Include:
 3. **Risk explanation:** why the verdict, in plain language.
 4. **Risk level:** Low / Medium / High for **site safety** from what is visible.
 5. **Immediate actions:** what to do first on site or before re-energizing / handover.
-6. **Confidence:** Low / Medium / High; state photo-only limits.
-
----
-
-## Follow-up Questions (MANDATORY)
-
-After the sections above, add:
-
-## Follow-up Questions
-- 3–5 bullets, each a short question the engineer could ask next (specific to this site; under ~12 words each).
-- If **safety / risk** was part of the user’s ask, include **at least two** follow-ups about **on-site verification**, **energization / isolation**, **as-built vs as-installed**, **testing**, or **responsible sign-off**—not generic product questions.
 
 ---
 
@@ -95,6 +81,8 @@ After the sections above, add:
 
 * Avoid generic phrases like "the image shows"; be specific about visible evidence.
 * Be precise and analytical; do not overclaim certainty.
+* **Never include a `## Confidence Level` section, a `**Confidence:**` bullet, or any standalone confidence rating (Low / Medium / High) in the output.** Do not state how confident you are in the analysis. If the image has limitations, describe them as plain caveats within the relevant section instead.
+* **Never include a `## Follow-up Questions` section or any list of suggested follow-up questions.** Do not append suggested next questions at the end of the reply. End the response with the last substantive section.
 * Prefer rich detail over bare minimum; only shorten if the user explicitly asked for a brief reply. **Summary:** default one paragraph; hard sentence cap above; second paragraph only if clearly needed. **Key Defects:** richer, bullet/sub-bullet structure—never dense paragraphs there; **Risk Assessment** required when the user asked about safety/hazards/risk.
 * Escalate tone if safety risk is high.
 * Focus on practical, real-world inspection value.
@@ -112,8 +100,7 @@ After the sections above, add:
 
 Every response must help the user:
 - understand importance (severity),
-- decide what to do next (priority + actions),
-- continue interaction (follow-up questions).
+- decide what to do next (priority + actions).
 """
 
 
@@ -132,9 +119,10 @@ RULES:
 - Prefer practical engineering guidance over theory
 
 STYLE:
+- Answer the user's **latest question first** in the opening lines (direct and concrete), then deepen with ties to the prior analysis.
 - Answer in depth: explain why, implications, and how each point ties to the prior analysis (quote or paraphrase it; do not invent new defects).
 - Use Markdown: short ## or ### headings and bullets so long answers stay readable.
-- Default to thorough answers (several paragraphs or equivalent bullets). Stay brief only if the user explicitly asks for a short or one-line reply.
+- Default to thorough answers (several paragraphs or equivalent bullets) **after** the direct opening. Stay brief only if the user explicitly asks for a short or one-line reply.
 - Where relevant: severity reasoning, remediation patterns, on-site verification steps, and what to monitor—only when grounded in the analysis above.
 - Educational and action-oriented: help the reader learn, not only confirm.
 
@@ -154,6 +142,142 @@ SITE_CONTEXT_PREFIX = """Additional site context (if provided by engineer):"""
 # --------------------------------------------------
 # CONTEXT BUILDER FUNCTION
 # --------------------------------------------------
+
+def build_vision_instruction_prompt(
+    *,
+    intent: str,
+    message: str,
+    site: dict[str, str],
+) -> str:
+    """
+    Build the full vision instruction string (PMO + optional site context).
+    ``intent`` comes from ``classify_inspection_intent`` in ``inspection_intent``.
+    """
+    msg = (message or "").strip()
+    if not msg:
+        return vision_prompt_with_site_context(
+            base_prompt=PMO_DEFECT_INSPECTION_PROMPT,
+            description=site.get("description", ""),
+            location=site.get("location", ""),
+            issue_type=site.get("issue_type", ""),
+        )
+
+    quoted = f"«{msg}»"
+
+    if intent == "defect_query":
+        base = f"""You are a professional construction inspection AI.
+
+The engineer asked (highest priority — answer this first): {quoted}
+
+**Direct-answer rule:** In the **first 1–3 lines** of your reply, answer their question in plain sentences **before** any `##` heading. List observable defects or state clearly what cannot be seen. Use concrete visual language (rust, crack, spalling, gap, stain)—never generic openers like "This inspection covers" or "The image shows".
+
+Then add Markdown **only where it helps**:
+- Prefer `## Key Defects` with bullets: **Bold label** per issue; under each use short sub-bullets **Evidence:** / **Where:** / **Significance:** when visible.
+- Omit `## Summary` if your opening already answers them; otherwise one short `## Summary` (at most 3 sentences).
+- Include `## Severity Assessment`, `## Priority Ranking`, `## Recommended Actions` only if they add real value—**omit** rather than boilerplate.
+
+Do **not** append a `## Follow-up Questions` section or any list of suggested next questions. End the reply with the last substantive section.
+
+Never invent defects. State photo-only limits honestly.
+"""
+        return vision_prompt_with_site_context(
+            base_prompt=base,
+            description=site.get("description", ""),
+            location=site.get("location", ""),
+            issue_type=site.get("issue_type", ""),
+        )
+
+    if intent == "safety_query":
+        base = f"""You are a professional construction inspection AI.
+
+The engineer asked (highest priority — answer this first): {quoted}
+
+**Direct-answer rule:** The **very first line** of your reply must be plain text starting with **Verdict:** then exactly one of **Safe** / **Unsafe** / **Needs verification**, plus at most one short clause with the main reason.
+
+Then use Markdown in a sensible order:
+- `## Key Defects` — every distinct visible issue tied to risk (bold labels + Evidence / Where / Significance sub-bullets).
+- `## Risk Assessment` — short bullets: key observations, risk explanation, site safety risk level (Low/Medium/High), immediate actions + what the photo cannot prove.
+
+Add `## Severity Assessment`, `## Priority Ranking`, `## Recommended Actions` only when they add value beyond the above.
+
+Do **not** append a `## Follow-up Questions` section or any list of suggested next questions. End the reply with the last substantive section.
+
+Never invent hazards; ground claims in visible evidence.
+"""
+        return vision_prompt_with_site_context(
+            base_prompt=base,
+            description=site.get("description", ""),
+            location=site.get("location", ""),
+            issue_type=site.get("issue_type", ""),
+        )
+
+    if intent == "action_query":
+        base = f"""You are a professional construction inspection AI.
+
+The engineer asked (highest priority — answer this first): {quoted}
+
+**Direct-answer rule:** Open with **immediate actions** in plain text: use a short numbered list or `-` bullets (1–6 items), most urgent first. Do not bury this under a long introduction.
+
+Then optionally add Markdown:
+- `## Recommended Actions` for expanded steps (immediate vs can-wait).
+- `## Key Defects` only to justify actions from what is visible.
+
+Other PMO-style sections only if they clearly help. Do **not** append a `## Follow-up Questions` section or any list of suggested next questions.
+
+Ground every recommendation in visible evidence; say when something requires on-site verification.
+"""
+        return vision_prompt_with_site_context(
+            base_prompt=base,
+            description=site.get("description", ""),
+            location=site.get("location", ""),
+            issue_type=site.get("issue_type", ""),
+        )
+
+    if intent == "specific_query":
+        base = f"""You are a professional construction inspection AI.
+
+The engineer asked (this is the **only** primary task): {quoted}
+
+**Direct-answer rule:** Start with a **plain-text** answer that addresses their question exactly (number, list, yes/no, identification, measurement—whatever they asked). Use only as many lines as needed; often 1–5 lines is enough.
+
+**Do not** open with broad framing like "This inspection focuses on…", "The image shows…", or a generic narrative. **Do not** produce a full PMO report (long `## Summary` plus extensive `## Key Defects` and every other section) unless their wording clearly asks for a full / general review of the scene.
+
+**Optional Markdown** — add sections only when they directly support the answer, e.g.:
+- Short `## Evidence` or bullet list if they asked "why" or "how do you know".
+- Brief `## Key Defects` only if they asked about defects or issues.
+
+Skip boilerplate sections (severity tables, long priority lists, etc.) when the question does not need them.
+
+Do **not** append a `## Follow-up Questions` section or any list of suggested next questions. End the reply with the last substantive content.
+
+If the photo cannot answer the question, say so plainly up front and explain limits (angle, resolution, scope)—do not invent.
+"""
+        return vision_prompt_with_site_context(
+            base_prompt=base,
+            description=site.get("description", ""),
+            location=site.get("location", ""),
+            issue_type=site.get("issue_type", ""),
+        )
+
+    # full_analysis — explicit full-report asks, broad "what do you see" phrasing, or empty message path in builder
+    base = f"""You are a senior construction PMO inspector reviewing a site photo.
+
+The engineer's message: {quoted}
+
+Produce a **complete** PMO-style inspection report: follow **every** applicable rule and `##` section in the PMO block below. Weave a **one-line direct answer** to their question into the **first paragraph** of `## Summary`, then deliver the full structured sections (Key Defects carries the concrete detail per PMO rules).
+
+If their message touches **safety / hazards / risk / "is it safe"**, you **must** include `## Risk Assessment` after `## Key Defects` as in the PMO rules.
+
+--- PMO report rules (apply in full) ---
+{PMO_DEFECT_INSPECTION_PROMPT}
+"""
+    return vision_prompt_with_site_context(
+        base_prompt=base,
+        description=site.get("description", ""),
+        location=site.get("location", ""),
+        issue_type=site.get("issue_type", ""),
+    )
+
 
 def vision_prompt_with_site_context(
     *,

@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="landing-html">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>AI Analysis - SiteSureLabs</title>
-  <meta name="description" content="Chat with the PMO inspection assistant — upload a site photo and ask follow-up questions.">
+  <title>Inspection Assistant - SiteSureLabs</title>
+  <meta name="description" content="Inspection Assistant — upload a site photo and ask follow-up questions about defects, safety, and remediation.">
   <link rel="icon" type="image/png" href="/MyHomeLogo/MyHomeLogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,9 +20,9 @@
         <span class="logo-text">SiteSureLabs</span>
       </a>
       <div class="dashboard-mode-toggle nav-dashboard-mode" role="tablist" aria-label="Choose workspace">
+        <a href="/dashboard/live/" class="dashboard-mode-toggle__tab" role="tab" aria-selected="false">Live Inspection</a>
         <a href="/dashboard/ai-analysis/" class="dashboard-mode-toggle__tab is-active" role="tab" aria-selected="true" aria-current="page">AI Analysis</a>
         <a href="/dashboard/image-analysis/" class="dashboard-mode-toggle__tab" role="tab" aria-selected="false">Image Analysis</a>
-        <a href="/dashboard/live/" class="dashboard-mode-toggle__tab" role="tab" aria-selected="false">Live Inspection</a>
       </div>
       <div class="nav-actions">
         <a href="/" class="nav-back-home">
@@ -59,7 +59,7 @@
                 <button type="button" class="cht-topbar__sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle chat history" aria-expanded="false">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
-                <h1 id="cht-title" class="cht-topbar__title">Analyze a site photo</h1>
+                <h1 id="cht-title" class="cht-topbar__title">Inspection Assistant</h1>
               </div>
               <div class="cht-topbar__actions">
                 <button type="button" class="cht-btn" id="gem-download-btn" disabled>Save PDF</button>
@@ -102,29 +102,34 @@
                 </button>
               </div>
 
-              <section class="cht-guided hidden" id="gem-guided-state" hidden aria-live="polite">
-                <div class="cht-guided__media">
-                  <p class="cht-guided__label">Uploaded Image</p>
-                  <div class="cht-guided__img-wrap">
-                    <img id="gem-guided-img" class="cht-guided__img" alt="Uploaded image preview">
+              <section class="cht-stage hidden" id="cht-stage" hidden aria-live="polite" aria-label="Inspection preview">
+                <div class="cht-stage__inner">
+                  <p class="cht-stage__eyebrow">
+                    <span class="cht-stage__check" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    Image attached
+                  </p>
+                  <h2 class="cht-stage__title">Start your inspection</h2>
+                  <p class="cht-stage__sub">We'll analyze this photo for defects, safety concerns, and severity. Ask follow-up questions after the report is ready.</p>
+
+                  <figure class="cht-stage__preview" id="cht-stage-preview">
+                    <img id="cht-stage-img" alt="Uploaded site photo preview" decoding="async">
+                  </figure>
+
+                  <div class="cht-stage__actions" id="cht-stage-actions">
+                    <button type="button" class="cht-stage__cta" id="cht-stage-start">
+                      <span class="cht-stage__cta-label">Start Analysis</span>
+                      <svg class="cht-stage__cta-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                    </button>
+                    <button type="button" class="cht-stage__secondary" id="cht-stage-replace">Choose another image</button>
+                  </div>
+
+                  <div class="cht-stage__loading hidden" id="cht-stage-loading" hidden role="status">
+                    <span class="cht-stage__spinner" aria-hidden="true"></span>
+                    <span class="cht-stage__loading-text">Analyzing image<span class="cht-stage__dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
                   </div>
                 </div>
-                <aside class="cht-guided__panel" id="gem-guided-panel">
-                  <p class="cht-guided__status" id="gem-guided-status">Analyzing image<span class="cht-guided__dots" aria-hidden="true"><span></span><span></span><span></span></span></p>
-                  <h3 class="cht-guided__title" id="gem-guided-title">Analyzing image...</h3>
-                  <p class="cht-guided__loading" id="gem-guided-loading">Building preliminary inspection context from the uploaded photo.</p>
-                  <ul class="cht-guided__findings hidden" id="gem-guided-findings" hidden>
-                    <li>Surface condition anomalies detected in visible zones.</li>
-                    <li>Pattern suggests areas to prioritize for close review.</li>
-                    <li>Use follow-up prompts for severity and remediation guidance.</li>
-                  </ul>
-                  <div class="cht-guided__chips" id="gem-guided-chips">
-                    <button type="button" class="cht-chip cht-guided__chip" data-guided-prompt="Analyze defects">Analyze defects</button>
-                    <button type="button" class="cht-chip cht-guided__chip" data-guided-prompt="Check severity">Check severity</button>
-                    <button type="button" class="cht-chip cht-guided__chip" data-guided-prompt="Suggest fixes">Suggest fixes</button>
-                    <button type="button" class="cht-chip cht-guided__chip" data-guided-prompt="Is this safe?">Is this safe?</button>
-                  </div>
-                </aside>
               </section>
 
               <div class="cht-messages" id="gem-messages" role="log" aria-live="polite" aria-relevant="additions"></div>
@@ -138,14 +143,15 @@
                   <img id="gem-pending-img" alt="Attached photo" width="48" height="48">
                   <button type="button" class="cht-composer__pending-x" id="gem-pending-remove" aria-label="Remove photo">&times;</button>
                 </div>
-              </div>              <div class="cht-composer" id="gem-composer-pill" role="group" aria-label="Message">
+              </div>
+              <div class="cht-composer" id="gem-composer-pill" role="group" aria-label="Message">
                 <button type="button" class="cht-composer__attach" id="gem-attach-btn" aria-label="Attach site photo" title="Attach photo">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                   </svg>
                 </button>
                 <div class="cht-composer__main">
-                  <textarea id="gem-input" class="cht-composer__input" rows="1" placeholder="Ask anything…"></textarea>
+                  <textarea id="gem-input" class="cht-composer__input" rows="1" placeholder="Ask about defects, safety, or next steps…"></textarea>
                 </div>
                 <button type="button" class="cht-composer__mic" id="gem-mic-btn" aria-label="Voice input">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

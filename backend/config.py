@@ -42,7 +42,7 @@ class Settings:
         return cls(
             vllm_base_url=os.getenv(
                 "VLLM_BASE_URL",
-                "http://172.20.7.22:8000",
+                "http://127.0.0.1:8000",
             ).rstrip("/"),
             vllm_model=os.getenv("VLLM_MODEL", "gemma4-31b"),
             vllm_api_key=os.getenv("VLLM_API_KEY", ""),

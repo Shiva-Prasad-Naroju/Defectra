@@ -1407,6 +1407,10 @@ a {
   color: #111827;
 }
 
+.landing-section-header h2#features-heading {
+  color: #2563eb;
+}
+
 .landing-section-lead {
   margin: 5px 0 0;
   font-size: 0.95rem;
