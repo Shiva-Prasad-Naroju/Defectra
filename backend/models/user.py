@@ -16,6 +16,7 @@ class User(Document):
     site: Optional[str] = None
     location: Optional[str] = None
     profile_photo: Optional[str] = None
+    is_disabled: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:

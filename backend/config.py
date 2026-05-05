@@ -20,6 +20,14 @@ _load_dotenv()
 from dataclasses import dataclass
 
 
+def _parse_cors_origins(raw: str) -> tuple[str, ...]:
+    s = (raw or "").strip()
+    if s == "*":
+        return ("*",)
+    parts = tuple(x.strip().rstrip("/") for x in s.split(",") if x.strip())
+    return parts if parts else ("*",)
+
+
 @dataclass(frozen=True)
 class Settings:
     # MongoDB
@@ -43,8 +51,11 @@ class Settings:
     vllm_max_tokens: int
     http_timeout_s: float
     max_image_upload_mb: int
+    defect_upload_max_mb: int
     inspection_chat_temperature: float
     landing_assistant_temperature: float
+    # CORS: comma-separated origins, or "*" for development only (never use * behind a public URL)
+    cors_origins: tuple[str, ...]
 
     def chat_completions_url(self) -> str:
         base = self.vllm_base_url.rstrip("/")
@@ -70,9 +81,11 @@ class Settings:
             vllm_temperature=float(os.getenv("VLLM_TEMPERATURE", "0.3")),
             vllm_max_tokens=int(os.getenv("VLLM_MAX_TOKENS", "20000")),
             http_timeout_s=float(os.getenv("VLLM_HTTP_TIMEOUT_S", "300")),
-            max_image_upload_mb=max(1, min(512, int(os.getenv("INSPECTION_MAX_IMAGE_MB", "20")))),
+            max_image_upload_mb=max(1, min(512, int(os.getenv("INSPECTION_MAX_IMAGE_MB", "48")))),
+            defect_upload_max_mb=max(8, min(200, int(os.getenv("DEFECT_UPLOAD_MAX_MB", "48")))),
             inspection_chat_temperature=float(os.getenv("INSPECTION_CHAT_TEMPERATURE", "0.35")),
             landing_assistant_temperature=float(os.getenv("LANDING_ASSISTANT_TEMPERATURE", "0.42")),
+            cors_origins=_parse_cors_origins(os.getenv("CORS_ORIGINS", "*")),
         )
 
 

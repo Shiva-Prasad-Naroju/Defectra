@@ -5,13 +5,14 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 
 from config import get_settings
-from prompt import PMO_DEFECT_INSPECTION_PROMPT
+from prompt import CONSTRUCTION_RELEVANCE_CLASSIFIER_PROMPT, PMO_DEFECT_INSPECTION_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,101 @@ def _build_chat_body(
     if stream:
         body["stream"] = True
     return body
+
+
+def _parse_construction_relevance_json(text: str) -> bool | None:
+    """Return True/False from model JSON, or None if unparseable."""
+    t = (text or "").strip()
+    if not t:
+        return None
+    if "```" in t:
+        t = re.sub(r"^```(?:json)?\s*", "", t, flags=re.IGNORECASE)
+        t = re.sub(r"\s*```\s*$", "", t)
+        t = t.strip()
+    start = t.find("{")
+    end = t.rfind("}")
+    if start == -1 or end <= start:
+        return None
+    try:
+        obj: Any = json.loads(t[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    for key in ("relevant", "construction_relevant", "is_construction", "site_related"):
+        if key not in obj:
+            continue
+        v = obj[key]
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            low = v.strip().lower()
+            if low in ("true", "yes", "1"):
+                return True
+            if low in ("false", "no", "0"):
+                return False
+    return None
+
+
+async def classify_construction_site_image(
+    *,
+    image_bytes: bytes,
+    mime_type: str,
+) -> bool:
+    """
+    True → run full PMO inspection. False → show non-construction message.
+    On transport/parse errors, returns True (fail open) so real site photos still analyze.
+    """
+    settings = get_settings()
+    url = settings.chat_completions_url()
+    body = _build_chat_body(
+        model=settings.vllm_model,
+        instructions=CONSTRUCTION_RELEVANCE_CLASSIFIER_PROMPT,
+        data_url=_data_url(image_bytes, mime_type),
+        temperature=0.0,
+        max_tokens=128,
+        stream=False,
+    )
+
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if settings.vllm_api_key.strip():
+        headers["Authorization"] = f"Bearer {settings.vllm_api_key.strip()}"
+
+    async with httpx.AsyncClient(timeout=settings.http_timeout_s) as client:
+        try:
+            resp = await client.post(url, json=body, headers=headers)
+        except httpx.RequestError:
+            logger.exception("construction relevance classifier: vLLM request failed")
+            return True
+
+        if resp.status_code >= 400:
+            logger.warning(
+                "construction relevance classifier: HTTP %s", resp.status_code
+            )
+            return True
+
+        try:
+            data = resp.json()
+        except json.JSONDecodeError:
+            logger.warning("construction relevance classifier: non-JSON body")
+            return True
+
+        if not isinstance(data, dict):
+            return True
+
+        try:
+            raw = _extract_assistant_text(data)
+        except RuntimeError as e:
+            logger.warning("construction relevance classifier: %s", e)
+            return True
+
+    parsed = _parse_construction_relevance_json(raw)
+    if parsed is None:
+        logger.warning(
+            "construction relevance classifier: could not parse: %r", raw[:500]
+        )
+        return True
+    return parsed
 
 
 def _delta_content_from_sse_payload(obj: dict[str, Any]) -> str:

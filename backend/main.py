@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from config import get_settings
+
 from db import init_db
 from models import Defect, User
 from utils.security import hash_password
@@ -38,6 +39,10 @@ UPLOADS_DIR = REPO_ROOT / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
 _HEX_RE = re.compile(r"^[0-9a-f]{24}$")
+
+_settings = get_settings()
+_cors_origins = list(_settings.cors_origins)
+_cors_allow_credentials = "*" not in _cors_origins
 
 
 async def _seed_admin() -> None:
@@ -151,9 +156,10 @@ app = FastAPI(title="Defectra API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")

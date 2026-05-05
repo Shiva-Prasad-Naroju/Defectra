@@ -1,0 +1,25 @@
+# ngrok agent config (v3 YAML) — EXAMPLE ONLY; copy to a secure path (not committed with secrets).
+# Docs: https://ngrok.com/docs/agent/config/v3/
+#
+# Usage:
+#   ngrok start defectra --config ngrok.example.yml
+#
+# Prefer: export NGROK_AUTHTOKEN=... and use OAuth or SSO on paid plans instead of basic_auth alone.
+
+version: '3'
+agent:
+  authtoken: ${NGROK_AUTHTOKEN}
+
+endpoints:
+  - name: defectra
+    url: https://YOUR-RESERVED-SUBDOMAIN.ngrok.app   # paid: reserve a stable hostname
+    upstream:
+      url: http://127.0.0.1:8080
+      # For local HTTPS nginx (optional): url: https://127.0.0.1:8443
+    # Authenticated edge — choose ONE strategy appropriate to your org:
+    # basic_auth:
+    #   - "username:$2y$10$..."   # use `ngrok config add-authtoken` + dashboard or bcrypt hash from ngrok docs
+    # oauth:
+    #   provider: google
+    #   allow_domains:
+    #     - yourcompany.com

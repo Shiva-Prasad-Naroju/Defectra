@@ -35,6 +35,12 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       strictPort: false,
+      allowedHosts: [
+        "localhost",
+        "127.0.0.1",
+        ".ngrok-free.app",
+        ".ngrok.app",
+      ],
       proxy: {
         "/api": apiProxy,
         "/uploads": apiProxy,
@@ -44,6 +50,12 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       strictPort: false,
+      allowedHosts: [
+        "localhost",
+        "127.0.0.1",
+        ".ngrok-free.app",
+        ".ngrok.app",
+      ],
       proxy: {
         "/api": apiProxy,
         "/uploads": apiProxy,

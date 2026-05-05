@@ -3,13 +3,15 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 from models import Defect, User, UserLog
 from utils.deps import require_admin
+from utils.security import hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,94 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 UPLOADS_DIR = REPO_ROOT / "uploads"
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+class AdminResetPasswordBody(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class AdminRoleBody(BaseModel):
+    role: Literal["user", "admin"]
+
+
+async def _get_user_or_404(user_id: str) -> User:
+    try:
+        user = await User.get(PydanticObjectId(user_id))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID") from None
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+async def _log_admin_action(
+    admin: User,
+    action: str,
+    *,
+    target: User,
+) -> None:
+    await UserLog(
+        user_id=str(admin.id),
+        action=action,
+        target_user_id=str(target.id),
+        target_email=target.email,
+    ).insert()
+
+
+async def _purge_user_defect_files(user_id: str) -> int:
+    """Delete defect rows and image files for a user. Returns number of defects removed."""
+    defects = await Defect.find(Defect.user_id == user_id).to_list()
+    removed = 0
+    for defect in defects:
+        file_path = REPO_ROOT / defect.image_path
+        if file_path.exists():
+            try:
+                file_path.unlink()
+            except OSError as e:
+                logger.error("admin: could not delete file %s: %s", file_path, e)
+        await defect.delete()
+        removed += 1
+    return removed
+
+
+async def _delete_user_profile_photo(user: User) -> None:
+    if not user.profile_photo or not user.profile_photo.startswith("uploads/"):
+        return
+    path = REPO_ROOT / user.profile_photo
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as e:
+        logger.warning("admin: profile photo unlink failed %s: %s", path, e)
+
+
+def _is_user_enabled(u: User) -> bool:
+    return not bool(getattr(u, "is_disabled", False))
+
+
+async def _count_enabled_admins() -> int:
+    admins = await User.find(User.role == "admin").to_list()
+    return sum(1 for u in admins if _is_user_enabled(u))
+
+
+async def _count_total_admins() -> int:
+    return await User.find(User.role == "admin").count()
+
+
+def _as_utc_aware(dt: datetime | None) -> datetime | None:
+    """Mongo often returns naive datetimes that are UTC; JS needs an offset or Z to parse correctly."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _iso_utc(dt: datetime | None) -> str | None:
+    d = _as_utc_aware(dt)
+    if d is None:
+        return None
+    # e.g. 2026-04-28T12:00:00.123+00:00 — works with new Date() in browsers
+    return d.isoformat(timespec="milliseconds")
 
 
 def _defect_to_dict(d: Defect, *, email: str | None = None, name: str | None = None) -> dict:
@@ -56,9 +146,24 @@ async def get_all_users(_: User = Depends(require_admin)):
         {"$match": {"user_id": {"$in": user_ids}}},
         {"$group": {"_id": "$user_id", "last": {"$max": "$timestamp"}}},
     ]
-    last_activity: dict[str, str] = {}
+    last_seen: dict[str, datetime] = {}
     async for doc in UserLog.get_motor_collection().aggregate(log_pipeline):
-        last_activity[doc["_id"]] = doc["last"].isoformat() if doc["last"] else None
+        uid = str(doc["_id"])
+        ts = _as_utc_aware(doc.get("last"))
+        if ts:
+            last_seen[uid] = ts
+
+    defect_last_pipeline = [
+        {"$match": {"user_id": {"$in": user_ids}}},
+        {"$group": {"_id": "$user_id", "last_upload": {"$max": "$created_at"}}},
+    ]
+    async for doc in Defect.get_motor_collection().aggregate(defect_last_pipeline):
+        uid = str(doc["_id"])
+        ts = _as_utc_aware(doc.get("last_upload"))
+        if ts:
+            prev = last_seen.get(uid)
+            if prev is None or ts > prev:
+                last_seen[uid] = ts
 
     logger.info("admin: fetched %d users", len(users))
     return [
@@ -67,28 +172,147 @@ async def get_all_users(_: User = Depends(require_admin)):
             "email": u.email,
             "name": u.name,
             "role": u.role,
+            "is_disabled": bool(u.is_disabled),
             "upload_count": upload_counts.get(str(u.id), 0),
-            "last_activity": last_activity.get(str(u.id)),
-            "created_at": u.created_at.isoformat(),
+            "last_activity": _iso_utc(last_seen.get(str(u.id)))
+            or _iso_utc(_as_utc_aware(u.created_at)),
+            "created_at": _iso_utc(_as_utc_aware(u.created_at)),
+            "profile_photo": u.profile_photo,
         }
         for u in users
     ]
 
 
+@router.post("/users/{user_id}/disable", status_code=status.HTTP_200_OK)
+async def admin_disable_user_account(user_id: str, admin: User = Depends(require_admin)):
+    if str(admin.id) == user_id:
+        raise HTTPException(status_code=400, detail="You cannot disable your own account.")
+
+    target = await _get_user_or_404(user_id)
+    if target.is_disabled:
+        raise HTTPException(status_code=400, detail="This account is already disabled.")
+
+    if target.role == "admin" and _is_user_enabled(target):
+        if await _count_enabled_admins() <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot disable the last active administrator.",
+            )
+
+    target.is_disabled = True
+    await target.save()
+    await _log_admin_action(admin, "admin_disable_user", target=target)
+    logger.info("admin: %s disabled user %s (%s)", admin.email, target.id, target.email)
+    return {"ok": True, "is_disabled": True, "id": str(target.id)}
+
+
+@router.post("/users/{user_id}/enable", status_code=status.HTTP_200_OK)
+async def admin_enable_user_account(user_id: str, admin: User = Depends(require_admin)):
+    target = await _get_user_or_404(user_id)
+    if not target.is_disabled:
+        raise HTTPException(status_code=400, detail="This account is already active.")
+
+    target.is_disabled = False
+    await target.save()
+    await _log_admin_action(admin, "admin_enable_user", target=target)
+    logger.info("admin: %s re-enabled user %s (%s)", admin.email, target.id, target.email)
+    return {"ok": True, "is_disabled": False, "id": str(target.id)}
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
+async def admin_delete_user_permanently(user_id: str, admin: User = Depends(require_admin)):
+    if str(admin.id) == user_id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account.")
+
+    target = await _get_user_or_404(user_id)
+
+    if target.role == "admin":
+        if await _count_total_admins() <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete the only administrator account.",
+            )
+
+    await _log_admin_action(admin, "admin_delete_user", target=target)
+
+    n_defects = await _purge_user_defect_files(user_id)
+    await _delete_user_profile_photo(target)
+
+    # Remove activity logs where this user was the actor (not audit rows that reference them as target).
+    await UserLog.get_motor_collection().delete_many({"user_id": user_id})
+
+    await target.delete()
+
+    logger.info(
+        "admin: %s permanently deleted user %s (%s), defects_removed=%d",
+        admin.email, user_id, target.email, n_defects,
+    )
+    return {"ok": True, "deleted_id": user_id, "defects_removed": n_defects}
+
+
 @router.get("/users/{user_id}")
 async def get_user_detail(user_id: str, _: User = Depends(require_admin)):
-    try:
-        user = await User.get(PydanticObjectId(user_id))
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await _get_user_or_404(user_id)
     return {
         "id": str(user.id),
         "email": user.email,
+        "name": user.name,
         "role": user.role,
+        "is_disabled": bool(user.is_disabled),
         "created_at": user.created_at.isoformat(),
+        "mobile": user.mobile,
+        "gender": user.gender,
+        "age": user.age,
+        "site": user.site,
+        "location": user.location,
+        "profile_photo": user.profile_photo,
     }
+
+
+@router.post("/users/{user_id}/reset-password", status_code=status.HTTP_200_OK)
+async def admin_reset_user_password(
+    user_id: str,
+    body: AdminResetPasswordBody,
+    admin: User = Depends(require_admin),
+):
+    if str(admin.id) == user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Change your own password from account settings, not from the admin console.",
+        )
+    target = await _get_user_or_404(user_id)
+    target.password = hash_password(body.new_password)
+    await target.save()
+    await _log_admin_action(admin, "admin_reset_password", target=target)
+    logger.info("admin: %s reset password for user %s", admin.email, target.email)
+    return {"ok": True}
+
+
+@router.patch("/users/{user_id}/role", status_code=status.HTTP_200_OK)
+async def admin_set_user_role(user_id: str, body: AdminRoleBody, admin: User = Depends(require_admin)):
+    if str(admin.id) == user_id:
+        raise HTTPException(status_code=400, detail="You cannot change your own role.")
+
+    target = await _get_user_or_404(user_id)
+    new_role = body.role
+    if new_role == target.role:
+        return {"ok": True, "role": target.role}
+
+    if target.role == "admin" and new_role == "user":
+        if await _count_total_admins() <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot demote the only administrator account.",
+            )
+
+    target.role = new_role
+    await target.save()
+    await _log_admin_action(admin, "admin_change_role", target=target)
+    logger.info(
+        "admin: %s set role for %s → %s",
+        admin.email, target.email, new_role,
+    )
+    return {"ok": True, "role": target.role}
 
 
 @router.get("/users/{user_id}/uploads")
@@ -160,6 +384,8 @@ async def get_logs(
             "name": name_map.get(log.user_id),
             "action": log.action,
             "timestamp": log.timestamp.isoformat(),
+            "target_user_id": log.target_user_id,
+            "target_email": log.target_email,
         }
         for log in logs
     ]
@@ -215,6 +441,7 @@ def _start_of_utc_today() -> datetime:
 @router.get("/stats")
 async def get_stats(_: User = Depends(require_admin)):
     total_users = await User.count()
+    disabled_users = await User.find(User.is_disabled == True).count()
     total_uploads = await Defect.count()
     total_logs = await UserLog.count()
 
@@ -230,6 +457,7 @@ async def get_stats(_: User = Depends(require_admin)):
 
     return {
         "total_users": total_users,
+        "disabled_users": disabled_users,
         "total_uploads": total_uploads,
         "total_logs": total_logs,
         "users_today": users_today,

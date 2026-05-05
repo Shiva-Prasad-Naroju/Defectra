@@ -1,6 +1,8 @@
 import { getToken, getUser } from "/shared/auth.js";
 import { mountDashboardNav } from "/shared/components/dashboard-nav.js";
 import { mountDashboardFooter } from "/shared/components/dashboard-footer.js";
+import { isHeicLike, normalizeImageFileForUpload } from "/heic-utils.js";
+import { optimizeImageForInspection, TARGET_UPLOAD_MAX_BYTES } from "/image-optimize.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   mountDashboardNav("live");
@@ -18,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const imageIn    = document.getElementById("image-input");
   const previewImg = document.getElementById("preview-img");
   const formThumb  = document.getElementById("form-thumb");
-  const successThumb = document.getElementById("success-thumb");
   const submitBtn  = document.getElementById("btn-submit");
   const submitText = document.getElementById("submit-text");
   const alertEl    = document.getElementById("insp-alert");
@@ -35,17 +36,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const selFlat  = document.getElementById("sel-flat");
   const selRoom  = document.getElementById("sel-room");
   const selDescription = document.getElementById("sel-description");
-  const sttBtn = document.getElementById("btn-stt");
-  const descHelp = document.getElementById("desc-help");
+  const uploadProgressEl = document.getElementById("upload-progress");
+  const uploadProgressFill = document.getElementById("upload-progress-fill");
+  const uploadProgressLabel = document.getElementById("upload-progress-label");
+  const collectionChipBtn = document.getElementById("btn-open-collection");
+  const collectionCountBadgeEl = document.getElementById("collection-count-badge");
+  const collectionListEl = document.getElementById("collection-list");
+  const collectionEmptyEl = document.getElementById("collection-empty");
+  const submitAllBtn = document.getElementById("btn-submit-all");
+  const clearCollectionBtn = document.getElementById("btn-clear-collection");
+  const backToCaptureBtn = document.getElementById("btn-back-to-capture");
+  const collectionToastEl = document.getElementById("collection-toast");
 
   let selectedFile = null;
   let previewUrl   = "";
   let allUploadItems = [];
   let desktopCameraStream = null;
-  let recognition = null;
-  let isListening = false;
-  let sttBaseText = "";
-  let sttFinalText = "";
+  const COLLECTION_STORAGE_KEY = "liveInspectionCollectionV1";
+  let collectionItems = [];
 
   /* ═══════════════════════════════════════════════
      Rotating tips
@@ -136,20 +144,119 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function formatMb(n) {
+    return (n / (1024 * 1024)).toFixed(1);
+  }
+
+  function setUploadProgress(visible, fraction, label) {
+    if (!uploadProgressEl) return;
+    uploadProgressEl.hidden = !visible;
+    const pct = Math.min(100, Math.max(0, Math.round((fraction || 0) * 100)));
+    if (uploadProgressFill) uploadProgressFill.style.width = `${pct}%`;
+    if (uploadProgressLabel) uploadProgressLabel.textContent = label || "";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function showCollectionToast(text) {
+    if (!collectionToastEl) return;
+    collectionToastEl.textContent = text;
+    collectionToastEl.classList.add("collection-toast--show");
+    window.setTimeout(() => collectionToastEl.classList.remove("collection-toast--show"), 1300);
+  }
+
+  async function fileToDataUrl(file) {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read image data"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function dataUrlToFile(dataUrl, fallbackName) {
+    const [header, payload] = String(dataUrl || "").split(",");
+    const mimeMatch = /data:(.*?);base64/i.exec(header || "");
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bin = atob(payload || "");
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const ext = (mime.split("/")[1] || "jpg").replace(/[^\w.-]/g, "");
+    return new File([arr], fallbackName || `collection-${Date.now()}.${ext}`, { type: mime });
+  }
+
+  function saveCollectionToStorage() {
+    try {
+      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(collectionItems));
+    } catch {
+      // Ignore storage quota issues; collection still works in-memory.
+    }
+  }
+
+  function loadCollectionFromStorage() {
+    try {
+      const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) collectionItems = parsed;
+    } catch {
+      collectionItems = [];
+    }
+  }
+
   /* ═══════════════════════════════════════════════
      Step 1: Capture
      ═══════════════════════════════════════════════ */
-  function pickFile(file) {
-    if (!file || !file.type.startsWith("image/")) return;
-    selectedFile = file;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = URL.createObjectURL(file);
-    previewImg.src = previewUrl;
+  async function processPickedFile(rawFile) {
+    if (!rawFile) return;
+    const mime = String(rawFile.type || "").toLowerCase();
+    if (!mime.startsWith("image/") && !isHeicLike(rawFile)) {
+      setCaptureError("Please choose an image file.");
+      return;
+    }
 
-    statusEl.textContent = "Image ready \u2713";
-    statusEl.className = "capture-status capture-status--ready";
+    statusEl.className = "capture-status capture-status--busy";
+    statusEl.textContent = "Processing image…";
 
-    goTo("step-preview");
+    const originalSize = rawFile.size || 0;
+
+    try {
+      const normalized = await normalizeImageFileForUpload(rawFile);
+      if (!normalized) {
+        setCaptureError("Unsupported image format.");
+        return;
+      }
+
+      const optimized = await optimizeImageForInspection(normalized, {
+        status: (msg) => {
+          statusEl.textContent = msg;
+        },
+      });
+
+      selectedFile = optimized;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(optimized);
+      previewImg.src = previewUrl;
+
+      const newSize = optimized.size || 0;
+      if (originalSize > newSize * 1.15 && originalSize > TARGET_UPLOAD_MAX_BYTES * 0.85) {
+        statusEl.textContent = `Ready — optimized ${formatMb(originalSize)} MB → ${formatMb(newSize)} MB ✓`;
+      } else {
+        statusEl.textContent = "Image ready ✓";
+      }
+      statusEl.className = "capture-status capture-status--ready";
+
+      goTo("step-preview");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setCaptureError(msg || "Could not process this image.");
+    }
   }
 
   function resetStatus() {
@@ -179,6 +286,60 @@ document.addEventListener("DOMContentLoaded", () => {
     await stopDesktopCamera();
   }
 
+  async function listVideoInputs() {
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter((d) => d.kind === "videoinput");
+  }
+
+  function pickPreferredVideoInput(videoInputs) {
+    if (!videoInputs.length) return null;
+    if (videoInputs.length === 1) return videoInputs[0];
+
+    const externalHint = /(usb|webcam|hd|logitech|brio|c9\d{2}|stream|external)/i;
+    const internalHint = /(integrated|built[- ]in|internal|facetime)/i;
+
+    const external = videoInputs.find((d) => externalHint.test(d.label || ""));
+    if (external) return external;
+
+    const nonInternal = videoInputs.find((d) => !internalHint.test(d.label || ""));
+    return nonInternal || videoInputs[0];
+  }
+
+  async function openBestAvailableCameraStream() {
+    // First permissive probe: this succeeds on most browsers/devices and unlocks labels.
+    const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+
+    const currentTrack = probe.getVideoTracks()[0];
+    const currentSettings = currentTrack?.getSettings?.() || {};
+    const currentDeviceId = currentSettings.deviceId || null;
+
+    const videoInputs = await listVideoInputs();
+    const preferred = pickPreferredVideoInput(videoInputs);
+    const preferredId = preferred?.deviceId || null;
+
+    // If there is no better camera candidate, keep the already-open stream.
+    if (!preferredId || !currentDeviceId || preferredId === currentDeviceId) {
+      return probe;
+    }
+
+    probe.getTracks().forEach((track) => track.stop());
+
+    // Try selected external/preferred camera; fall back to permissive stream if unavailable.
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: { exact: preferredId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+    } catch {
+      return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
+  }
+
   async function openDesktopCameraModal() {
     if (!cameraModal || !cameraPreview) {
       cameraIn.click();
@@ -189,16 +350,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     try {
-      desktopCameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
+      await stopDesktopCamera();
+      desktopCameraStream = await openBestAvailableCameraStream();
     } catch (err) {
       const name = err && err.name ? err.name : "";
       if (name === "NotFoundError" || name === "DevicesNotFoundError") {
         setCaptureError("No camera detected on this device.");
       } else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         setCaptureError("Camera access denied. Allow permission and try again.");
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        setCaptureError("Camera is busy in another app. Close it there and try again.");
       } else {
         setCaptureError("Unable to open camera. Please use Upload Image.");
       }
@@ -226,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
     await closeDesktopCameraModal();
-    pickFile(file);
+    await processPickedFile(file);
   }
 
   document.getElementById("btn-take-photo").addEventListener("click", () => {
@@ -245,8 +406,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === cameraModal) closeDesktopCameraModal();
   });
 
-  cameraIn.addEventListener("change", () => pickFile(cameraIn.files[0]));
-  imageIn.addEventListener("change", () => pickFile(imageIn.files[0]));
+  cameraIn.addEventListener("change", async () => {
+    const f = cameraIn.files && cameraIn.files[0];
+    cameraIn.value = "";
+    await processPickedFile(f);
+  });
+  imageIn.addEventListener("change", async () => {
+    const f = imageIn.files && imageIn.files[0];
+    imageIn.value = "";
+    await processPickedFile(f);
+  });
 
   /* ═══════════════════════════════════════════════
      Step 2: Preview
@@ -279,72 +448,89 @@ document.addEventListener("DOMContentLoaded", () => {
 
   [selTower, selFloor, selFlat, selRoom].forEach((sel) => sel.addEventListener("change", validateForm));
 
-  /* ═══════════════════════════════════════════════
-     Description STT (Google Web Speech / webkit)
-     ═══════════════════════════════════════════════ */
-  function setMicState(listening) {
-    isListening = listening;
-    sttBtn.classList.toggle("stt-btn--active", listening);
-    sttBtn.setAttribute("aria-label", listening ? "Stop voice input" : "Start voice input for description");
-    descHelp.textContent = listening
-      ? "Listening... speak now. Tap Stop when done."
-      : "Type manually or use mic for live speech-to-text.";
-  }
-
-  function stopRecognition() {
-    if (!recognition || !isListening) return;
-    recognition.stop();
-    setMicState(false);
-  }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    sttBtn.disabled = true;
-    descHelp.textContent = "Speech-to-text is not supported in this browser.";
-  } else {
-    recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const phrase = event.results[i][0].transcript;
-        if (event.results[i].isFinal) sttFinalText += `${phrase} `;
-        else interim += phrase;
-      }
-      selDescription.value = [sttBaseText, sttFinalText.trim(), interim.trim()].filter(Boolean).join(" ").trim();
-    };
-
-    recognition.onend = () => {
-      if (isListening) setMicState(false);
-    };
-    recognition.onerror = () => {
-      setMicState(false);
-      descHelp.textContent = "Could not capture speech. Please retry or type manually.";
-    };
-
-    sttBtn.addEventListener("click", () => {
-      if (isListening) {
-        stopRecognition();
-        return;
-      }
-      sttBaseText = selDescription.value.trim();
-      sttFinalText = "";
-      try {
-        recognition.start();
-        setMicState(true);
-      } catch {
-        setMicState(false);
-      }
-    });
-  }
-
   function showAlert(msg) {
     alertEl.textContent = msg;
     alertEl.className = "insp-alert insp-alert--error";
   }
+
+  function updateCollectionIndicator() {
+    const n = collectionItems.length;
+    if (collectionCountBadgeEl) collectionCountBadgeEl.textContent = String(n);
+    if (collectionChipBtn) {
+      collectionChipBtn.setAttribute(
+        "aria-label",
+        n === 0 ? "Open collection, currently empty" : `Open collection, ${n} items ready`,
+      );
+    }
+    if (submitAllBtn) {
+      submitAllBtn.textContent = `Submit All (${n})`;
+      submitAllBtn.disabled = n === 0;
+    }
+  }
+
+  function renderCollectionList() {
+    if (!collectionListEl || !collectionEmptyEl) return;
+    updateCollectionIndicator();
+    if (!collectionItems.length) {
+      collectionListEl.innerHTML = "";
+      collectionEmptyEl.style.display = "block";
+      return;
+    }
+    collectionEmptyEl.style.display = "none";
+    collectionListEl.innerHTML = collectionItems.map((item, idx) => `
+      <article class="collection-item" data-idx="${idx}">
+        <div class="collection-item__top">
+          <img class="collection-item__img" src="${escapeHtml(item.preview_url || item.image_data_url || "")}" alt="Collection item ${idx + 1}">
+          <div class="collection-item__summary">
+            <p class="collection-item__title">${escapeHtml(item.tower || "Tower")} • Floor ${escapeHtml(item.floor || "-")}</p>
+            <p class="collection-item__line">Flat ${escapeHtml(item.flat || "-")} • ${escapeHtml(item.room || "Room")}</p>
+            <p class="collection-item__line">${escapeHtml(item.description || "No description")}</p>
+            <div class="collection-item__actions">
+              <button type="button" class="collection-item__edit" data-edit="${idx}">Edit</button>
+            </div>
+            <div class="collection-item__edit-panel" data-panel="${idx}" hidden>
+              <div class="collection-item__meta">
+                <input data-field="tower" value="${escapeHtml(item.tower)}" placeholder="Tower">
+                <input data-field="floor" value="${escapeHtml(item.floor)}" placeholder="Floor">
+                <input data-field="flat" value="${escapeHtml(item.flat)}" placeholder="Flat">
+                <input data-field="room" value="${escapeHtml(item.room)}" placeholder="Room">
+                <textarea data-field="description" placeholder="Description">${escapeHtml(item.description || "")}</textarea>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="collection-item__remove" data-remove="${idx}">Remove</button>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  collectionListEl?.addEventListener("input", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+    const card = target.closest(".collection-item");
+    if (!card) return;
+    const idx = Number(card.getAttribute("data-idx"));
+    const field = target.getAttribute("data-field");
+    if (!Number.isInteger(idx) || !field || !collectionItems[idx]) return;
+    collectionItems[idx][field] = target.value;
+    saveCollectionToStorage();
+  });
+
+  collectionListEl?.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const editIdx = Number(target.getAttribute("data-edit"));
+    if (Number.isInteger(editIdx)) {
+      const panel = collectionListEl.querySelector(`[data-panel="${editIdx}"]`);
+      if (panel) panel.hidden = !panel.hidden;
+      return;
+    }
+    const idx = Number(target.getAttribute("data-remove"));
+    if (!Number.isInteger(idx)) return;
+    collectionItems.splice(idx, 1);
+    saveCollectionToStorage();
+    renderCollectionList();
+  });
 
   submitBtn.addEventListener("click", async () => {
     if (!selectedFile) { showAlert("No image selected."); return; }
@@ -352,51 +538,93 @@ document.addEventListener("DOMContentLoaded", () => {
       showAlert("Please fill all location fields.");
       return;
     }
-
     submitBtn.disabled = true;
-    submitText.innerHTML = '<span class="btn-spinner"></span> Uploading\u2026';
-
-    const fd = new FormData();
-    fd.append("image", selectedFile);
-    fd.append("tower", selTower.value);
-    fd.append("floor", selFloor.value);
-    fd.append("flat", selFlat.value);
-    fd.append("room", selRoom.value);
-    fd.append("description", selDescription.value.trim());
-
+    submitText.innerHTML = '<span class="btn-spinner"></span> Adding...';
     try {
-      const res = await fetch("/api/defects/upload", {
+      const imageDataUrl = await fileToDataUrl(selectedFile);
+      collectionItems.push({
+        id: `col-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        preview_url: imageDataUrl,
+        image_data_url: imageDataUrl,
+        file_name: selectedFile.name || `capture-${Date.now()}.jpg`,
+        tower: selTower.value,
+        floor: selFloor.value,
+        flat: selFlat.value,
+        room: selRoom.value,
+        description: selDescription.value.trim(),
+      });
+      saveCollectionToStorage();
+      renderCollectionList();
+      showCollectionToast(`Added ✓ (${collectionItems.length} in collection)`);
+      collectionChipBtn?.classList.add("collection-chip--pulse");
+      window.setTimeout(() => collectionChipBtn?.classList.remove("collection-chip--pulse"), 900);
+      fullReset();
+      goTo("step-capture");
+    } finally {
+      submitText.textContent = "Add to Collection";
+      validateForm();
+    }
+  });
+
+  async function submitCollectionBatch() {
+    if (!collectionItems.length || !submitAllBtn) return;
+    submitAllBtn.disabled = true;
+    submitAllBtn.innerHTML = '<span class="btn-spinner"></span> Submitting...';
+    setUploadProgress(true, 0, "Submitting collection...");
+    try {
+      const fd = new FormData();
+      fd.append("items_json", JSON.stringify(collectionItems.map((item) => ({
+        tower: item.tower || "",
+        floor: item.floor || "",
+        flat: item.flat || "",
+        room: item.room || "",
+        description: item.description || "",
+      }))));
+      for (const item of collectionItems) {
+        fd.append("images", dataUrlToFile(item.image_data_url, item.file_name));
+      }
+
+      const res = await fetch("/api/defects/upload-batch", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showAlert(data.detail || "Upload failed");
-        submitBtn.disabled = false;
-        submitText.textContent = "Submit";
+        showAlert(typeof data?.detail === "string" ? data.detail : "Batch submission failed.");
         return;
       }
-
-      successThumb.src = previewUrl;
-      goTo("step-success");
+      const failures = Array.isArray(data.results) ? data.results.filter((r) => !r.ok) : [];
+      if (failures.length) {
+        showAlert(`Submitted with ${failures.length} failure(s). Please review collection and retry.`);
+        return;
+      }
+      collectionItems = [];
+      saveCollectionToStorage();
+      renderCollectionList();
+      fullReset();
+      showCollectionToast(`Submitted successfully (${data.success_count || 0})`);
+      goTo("step-capture");
       loadUploads();
-    } catch {
-      showAlert("Network error \u2014 please retry");
-      submitBtn.disabled = false;
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : "Batch submission failed.");
     } finally {
-      submitText.textContent = "Submit";
+      setUploadProgress(false, 0, "");
+      updateCollectionIndicator();
     }
-  });
+  }
 
-  /* ═══════════════════════════════════════════════
-     Step 4: Success → restart
-     ═══════════════════════════════════════════════ */
-  document.getElementById("btn-another").addEventListener("click", () => {
-    fullReset();
-    goTo("step-capture");
+  collectionChipBtn?.addEventListener("click", () => {
+    renderCollectionList();
+    goTo("step-success");
   });
+  backToCaptureBtn?.addEventListener("click", () => goTo("step-capture"));
+  clearCollectionBtn?.addEventListener("click", () => {
+    collectionItems = [];
+    saveCollectionToStorage();
+    renderCollectionList();
+  });
+  submitAllBtn?.addEventListener("click", submitCollectionBatch);
 
   /* ═══════════════════════════════════════════════
      Reset helpers
@@ -409,7 +637,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function fullReset() {
-    stopRecognition();
     resetFile();
     selTower.value = "";
     selFloor.value = "";
@@ -552,5 +779,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) { console.error("Failed to load uploads:", err); }
   }
 
+  loadCollectionFromStorage();
+  renderCollectionList();
   loadUploads();
 });

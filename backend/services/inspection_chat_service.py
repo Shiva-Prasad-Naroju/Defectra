@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from config import get_settings
 from prompt import INSPECTION_ASSISTANT_SYSTEM, build_vision_instruction_prompt
 from services.generate_client import (
+    classify_construction_site_image,
     generate_inspection_report,
     generate_text_chat_completion,
     stream_inspection_report_deltas,
@@ -25,6 +26,12 @@ from services.inspection_markdown import parse_inspection_sections
 
 def _max_image_bytes() -> int:
     return get_settings().max_image_upload_mb * 1024 * 1024
+
+
+NON_CONSTRUCTION_SITE_IMAGE_MESSAGE = (
+    "This image does not appear to contain any construction-related elements.\n"
+    "Upload a site image showing structural components or defects for analysis."
+)
 
 
 def site_from_json(raw: str | None) -> dict[str, str]:
@@ -81,18 +88,25 @@ async def _vision_turn(
     sess.image_bytes = image_bytes
     sess.site_notes = dict(site)
 
-    instructions = _vision_instructions(site=site, message=message)
     try:
-        report = await generate_inspection_report(
+        if not await classify_construction_site_image(
             image_bytes=image_bytes,
             mime_type=image_mime,
-            prompt=instructions,
-        )
+        ):
+            report = NON_CONSTRUCTION_SITE_IMAGE_MESSAGE
+        else:
+            instructions = _vision_instructions(site=site, message=message)
+            report = await generate_inspection_report(
+                image_bytes=image_bytes,
+                mime_type=image_mime,
+                prompt=instructions,
+            )
     except Exception:
         sess.image_mime = None
         sess.image_bytes = None
         sess.site_notes = {}
         raise
+        
 
     sess.analysis_markdown = report
     sess.structured = parse_inspection_sections(report)
@@ -226,18 +240,25 @@ async def iter_inspection_chat_sse(
                 sess.image_mime = image_mime
                 sess.image_bytes = image_bytes
                 sess.site_notes = dict(site)
-                instructions = _vision_instructions(site=site, message=message)
                 vision_intent = classify_inspection_intent(message)
-                vision_buf: list[str] = []
                 try:
-                    async for piece in stream_inspection_report_deltas(
+                    if not await classify_construction_site_image(
                         image_bytes=image_bytes,
                         mime_type=image_mime,
-                        prompt=instructions,
                     ):
-                        vision_buf.append(piece)
-                        yield _sse({"type": "chunk", "text": piece})
-                    text = "".join(vision_buf)
+                        text = NON_CONSTRUCTION_SITE_IMAGE_MESSAGE
+                        yield _sse({"type": "chunk", "text": text})
+                    else:
+                        instructions = _vision_instructions(site=site, message=message)
+                        pieces: list[str] = []
+                        async for piece in stream_inspection_report_deltas(
+                            image_bytes=image_bytes,
+                            mime_type=image_mime,
+                            prompt=instructions,
+                        ):
+                            pieces.append(piece)
+                            yield _sse({"type": "chunk", "text": piece})
+                        text = "".join(pieces)
                     sess.analysis_markdown = text
                     sess.structured = parse_inspection_sections(text)
                     sess.conversation_after_analysis.clear()

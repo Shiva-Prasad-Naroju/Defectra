@@ -80,7 +80,7 @@
 
     const user = getUser();
     if (user && user.role === "admin") {
-      window.location.href = "/admin/";
+      window.location.href = "/";
     }
 
     const form = document.getElementById("adminLoginForm");
@@ -184,7 +184,7 @@
           profile_photo: data.profile_photo || null,
         });
 
-        window.location.href = "/admin/";
+        window.location.href = "/";
       } catch {
         showAlert("Network error — is the server running?", "error");
         shakeForm();

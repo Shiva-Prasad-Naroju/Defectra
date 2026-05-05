@@ -82,6 +82,12 @@ const COUNTRY_CODES = [
   { code: "+65", label: "Singapore (+65)" },
   { code: "+1", label: "US / Canada (+1)" },
 ];
+const PROFILE_NAME_MAX_LENGTH = 80;
+const PROFILE_MOBILE_MAX_LENGTH = 10;
+const PROFILE_SITE_MAX_LENGTH = 80;
+const PROFILE_LOCATION_MAX_LENGTH = 120;
+const PROFILE_AGE_MIN = 1;
+const PROFILE_AGE_MAX = 89;
 
 function escAttr(s) {
   return String(s ?? "")
@@ -126,6 +132,16 @@ function countryOptionsHtml(selectedCode) {
   );
 }
 
+function keepDigits(value, maxLength) {
+  return String(value ?? "")
+    .replace(/\D/g, "")
+    .slice(0, maxLength);
+}
+
+function clampTextLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
+
 /* ── All styles injected once (self-contained, works on any page) ── */
 const MODAL_CSS = `
 /* ── Profile dropdown ── */
@@ -133,7 +149,7 @@ const MODAL_CSS = `
 .nav-avatar-btn{width:36px;height:36px;border-radius:50%;border:2px solid #e2e8f0;
   background:#2563eb;cursor:pointer;display:inline-flex;align-items:center;
   justify-content:center;color:#fff;padding:0;flex-shrink:0;
-  font-family:Montserrat,Inter,sans-serif;font-size:.875rem;font-weight:700;
+  font-family:var(--font-sans);font-size:.875rem;font-weight:700;
   letter-spacing:.01em;line-height:1;text-transform:uppercase;
   transition:border-color .15s,box-shadow .15s,background .15s}
 .nav-avatar-btn img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
@@ -143,7 +159,7 @@ const MODAL_CSS = `
 .nav-profile-menu{position:absolute;top:calc(100% + 10px);right:0;min-width:200px;
   background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;
   box-shadow:0 8px 24px rgba(15,23,42,.12),0 2px 6px rgba(15,23,42,.06);
-  padding:.4rem;z-index:9999;display:none;font-family:Montserrat,Inter,sans-serif}
+  padding:.4rem;z-index:9999;display:none;font-family:var(--font-sans)}
 .nav-profile-menu.is-open{display:block}
 .nav-profile-menu__header{padding:.5rem .75rem .45rem;border-bottom:1px solid #f1f5f9;margin-bottom:.3rem}
 .nav-profile-menu__name{font-size:.82rem;font-weight:700;color:#0f172a;overflow:hidden;
@@ -152,7 +168,7 @@ const MODAL_CSS = `
   text-overflow:ellipsis;white-space:nowrap;max-width:170px}
 .nav-profile-menu__item{display:flex;align-items:center;gap:.5rem;width:100%;
   padding:.5rem .75rem;border:none;background:transparent;text-align:left;
-  font-size:.875rem;color:#334155;font-family:Montserrat,Inter,sans-serif;
+  font-size:.875rem;color:#334155;font-family:var(--font-sans);
   border-radius:7px;cursor:pointer;transition:background .12s;text-decoration:none}
 .nav-profile-menu__item:hover{background:#f1f5f9;color:#1e293b}
 .nav-profile-menu__item--danger{color:#dc2626}
@@ -168,7 +184,7 @@ const MODAL_CSS = `
 .pn-modal__header{display:flex;align-items:center;justify-content:space-between;
   padding:1.1rem 1.35rem;border-bottom:1px solid #e2e8f0;flex-shrink:0}
 .pn-modal__title{font-size:1rem;font-weight:700;color:#1e293b;
-  font-family:Montserrat,Inter,sans-serif}
+  font-family:var(--font-sans)}
 .pn-modal__close{width:32px;height:32px;border:none;background:transparent;
   border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;
   justify-content:center;color:#64748b;transition:background .12s}
@@ -199,14 +215,14 @@ const MODAL_CSS = `
   backdrop-filter:saturate(1.15) blur(14px);-webkit-backdrop-filter:saturate(1.15) blur(14px)}
 .pn-modal--profile{background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:90vh;
   display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(15,23,42,.18),0 8px 24px rgba(15,23,42,.08);
-  border:1px solid rgba(226,232,240,.85);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  border:1px solid rgba(226,232,240,.85);font-family:var(--font-sans)}
 #pn-profile-backdrop:not(.is-hidden) .pn-modal--profile{animation:pnProfileIn .34s cubic-bezier(.16,1,.3,1) both}
 @keyframes pnProfileIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media (prefers-reduced-motion:reduce){#pn-profile-backdrop:not(.is-hidden) .pn-modal--profile{animation:none}}
 .pn-modal__header--profile{align-items:flex-start;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #f1f5f9;gap:1rem}
 .pn-modal__head-text{min-width:0;flex:1}
 .pn-modal__header--profile .pn-modal__title{font-size:1.25rem;font-weight:700;color:#0f172a;letter-spacing:-.02em;
-  font-family:Inter,system-ui,sans-serif;display:block}
+  font-family:var(--font-sans);display:block}
 .pn-modal__subtitle{margin:.35rem 0 0;font-size:.8125rem;line-height:1.5;color:#64748b;font-weight:450;max-width:36rem}
 .pn-modal__close--profile{width:40px;height:40px;border-radius:12px;flex-shrink:0;margin-top:-.15rem;
   transition:background .18s ease,color .18s ease,transform .15s ease}
@@ -236,7 +252,7 @@ button.pn-profile-avatar-xl:focus-visible{outline:2px solid #2563eb;outline-offs
   box-shadow:0 28px 90px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08)}
 .pn-avatar-lightbox-placeholder{width:min(52vmin,300px);height:min(52vmin,300px);border-radius:50%;
   background:linear-gradient(145deg,#3b82f6,#1d4ed8);color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:clamp(3rem,14vmin,5.5rem);font-weight:700;font-family:Inter,system-ui,sans-serif;
+  font-size:clamp(3rem,14vmin,5.5rem);font-weight:700;font-family:var(--font-sans);
   box-shadow:0 28px 90px rgba(37,99,235,.35),0 0 0 4px #fff}
 .pn-avatar-lightbox-close{position:absolute;top:-14px;right:-14px;width:44px;height:44px;border-radius:50%;
   border:1px solid rgba(255,255,255,.22);padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
@@ -287,7 +303,7 @@ button.pn-profile-avatar-xl:focus-visible{outline:2px solid #2563eb;outline-offs
 .pn-profile-field--location input{background-image:linear-gradient(#fafafa,#fafafa);position:relative}
 .pn-profile-field--location input::placeholder{color:#cbd5e1}
 .pn-profile-actions{display:flex;justify-content:flex-end;gap:.75rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid #eef2f6}
-.pn-profile-btn{font-family:Inter,system-ui,sans-serif;font-size:.875rem;font-weight:600;border-radius:12px;padding:.65rem 1.35rem;
+.pn-profile-btn{font-family:var(--font-sans);font-size:.875rem;font-weight:600;border-radius:12px;padding:.65rem 1.35rem;
   cursor:pointer;transition:background .18s ease,transform .14s ease,box-shadow .18s ease,color .18s ease,border-color .18s ease}
 .pn-profile-btn:active{transform:scale(.98)}
 .pn-profile-btn--cancel{background:transparent;color:#475569;border:1px solid #e5e7eb}
@@ -312,7 +328,7 @@ button.pn-profile-avatar-xl:focus-visible{outline:2px solid #2563eb;outline-offs
   padding:1rem;opacity:0;transition:opacity .28s ease}
 .pn-crop-backdrop--visible{opacity:1}
 .pn-crop-card{background:#fff;border-radius:18px;max-width:400px;width:100%;padding:1.5rem 1.5rem 1.35rem;
-  box-shadow:0 24px 64px rgba(15,23,42,.2);border:1px solid #eef2f6;font-family:Inter,system-ui,sans-serif}
+  box-shadow:0 24px 64px rgba(15,23,42,.2);border:1px solid #eef2f6;font-family:var(--font-sans)}
 .pn-crop-card__head{margin-bottom:1.1rem}
 .pn-crop-card__title{font-size:1.1rem;font-weight:700;color:#0f172a;margin:0;letter-spacing:-.02em}
 .pn-crop-card__sub{font-size:.8rem;color:#64748b;margin:.35rem 0 0;line-height:1.45}
@@ -358,7 +374,7 @@ button.pn-profile-avatar-xl:focus-visible{outline:2px solid #2563eb;outline-offs
   color:#0f172a;line-height:1}
 .pn-crop-zoom__hint{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#94a3b8;padding-top:.12rem}
 .pn-crop-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1.35rem;padding-top:1.1rem;border-top:1px solid #f1f5f9}
-.pn-crop-btn{font-family:Inter,system-ui,sans-serif;font-size:.84rem;font-weight:600;border-radius:10px;padding:.55rem 1.1rem;
+.pn-crop-btn{font-family:var(--font-sans);font-size:.84rem;font-weight:600;border-radius:10px;padding:.55rem 1.1rem;
   cursor:pointer;border:none;transition:background .15s ease,transform .12s ease}
 .pn-crop-btn:active{transform:scale(.97)}
 .pn-crop-btn--ghost{background:transparent;color:#475569;border:1px solid #e5e7eb}
@@ -713,6 +729,47 @@ function avatarButtonClass(userLike) {
   return userLike?.profile_photo ? "nav-avatar-btn nav-avatar-btn--image" : "nav-avatar-btn";
 }
 
+function bindProfileInputGuards() {
+  const nameEl = document.getElementById("pf-name");
+  const ageEl = document.getElementById("pf-age");
+  const mobileEl = document.getElementById("pf-mobile");
+  const siteEl = document.getElementById("pf-site");
+  const locationEl = document.getElementById("pf-location");
+
+  mobileEl?.addEventListener("input", () => {
+    const next = keepDigits(mobileEl.value, PROFILE_MOBILE_MAX_LENGTH);
+    if (mobileEl.value !== next) mobileEl.value = next;
+  });
+  mobileEl?.addEventListener("paste", (ev) => {
+    ev.preventDefault();
+    const text = ev.clipboardData?.getData("text") || "";
+    mobileEl.value = keepDigits(`${mobileEl.value}${text}`, PROFILE_MOBILE_MAX_LENGTH);
+  });
+
+  ageEl?.addEventListener("input", () => {
+    const digits = keepDigits(ageEl.value, 3);
+    if (!digits) {
+      ageEl.value = "";
+      return;
+    }
+    const numeric = Math.min(PROFILE_AGE_MAX, Math.max(PROFILE_AGE_MIN, Number.parseInt(digits, 10)));
+    ageEl.value = String(numeric);
+  });
+
+  nameEl?.addEventListener("input", () => {
+    const next = clampTextLength(nameEl.value, PROFILE_NAME_MAX_LENGTH);
+    if (nameEl.value !== next) nameEl.value = next;
+  });
+  siteEl?.addEventListener("input", () => {
+    const next = clampTextLength(siteEl.value, PROFILE_SITE_MAX_LENGTH);
+    if (siteEl.value !== next) siteEl.value = next;
+  });
+  locationEl?.addEventListener("input", () => {
+    const next = clampTextLength(locationEl.value, PROFILE_LOCATION_MAX_LENGTH);
+    if (locationEl.value !== next) locationEl.value = next;
+  });
+}
+
 function displayName(userLike) {
   const name = (userLike?.name || "").trim();
   if (name) return name;
@@ -752,7 +809,7 @@ function renderProfileForm(data) {
             <div class="pn-profile-field pn-profile-field--full">
               <label for="pf-name">Full name</label>
               <input type="text" id="pf-name" name="name" autocomplete="name"
-                value="${escAttr(data.name || "")}" placeholder="Your full name">
+                value="${escAttr(data.name || "")}" placeholder="Your full name" maxlength="${PROFILE_NAME_MAX_LENGTH}">
             </div>
             <div class="pn-profile-field">
               <label for="pf-gender">Gender</label>
@@ -765,7 +822,7 @@ function renderProfileForm(data) {
             </div>
             <div class="pn-profile-field">
               <label for="pf-age">Age</label>
-              <input type="number" id="pf-age" inputmode="numeric" min="1" max="120"
+              <input type="number" id="pf-age" inputmode="numeric" min="${PROFILE_AGE_MIN}" max="${PROFILE_AGE_MAX}"
                 value="${data.age != null ? escAttr(String(data.age)) : ""}" placeholder="e.g. 32">
             </div>
           </div>
@@ -783,7 +840,7 @@ function renderProfileForm(data) {
               <div class="pn-profile-phone-row">
                 <select id="pf-country" aria-label="Country code">${countryOptionsHtml(countryValue)}</select>
                 <input type="tel" id="pf-mobile" inputmode="tel" autocomplete="tel-national"
-                  value="${escAttr(mobileNational)}" placeholder="98765 43210">
+                  value="${escAttr(keepDigits(mobileNational, PROFILE_MOBILE_MAX_LENGTH))}" maxlength="${PROFILE_MOBILE_MAX_LENGTH}" pattern="\\d{10}" placeholder="10-digit mobile number">
               </div>
             </div>
           </div>
@@ -793,12 +850,12 @@ function renderProfileForm(data) {
           <div class="pn-profile-block__grid">
             <div class="pn-profile-field">
               <label for="pf-site">Site</label>
-              <input type="text" id="pf-site" value="${escAttr(data.site || "")}" placeholder="Project or site name">
+              <input type="text" id="pf-site" value="${escAttr(data.site || "")}" maxlength="${PROFILE_SITE_MAX_LENGTH}" placeholder="Project or site name">
             </div>
             <div class="pn-profile-field pn-profile-field--location">
               <label for="pf-location">Location</label>
               <input type="text" id="pf-location" autocomplete="address-level2"
-                value="${escAttr(data.location || "")}" placeholder="City, region, or area" spellcheck="false">
+                value="${escAttr(data.location || "")}" maxlength="${PROFILE_LOCATION_MAX_LENGTH}" placeholder="City, region, or area" spellcheck="false">
             </div>
           </div>
         </section>
@@ -826,6 +883,7 @@ async function loadAndShowProfile() {
     const data = await res.json();
 
     body.innerHTML = renderProfileForm(data);
+    bindProfileInputGuards();
 
     document.getElementById("pf-cancel").addEventListener("click", closeProfileModal);
     const photoInput = document.getElementById("pf-photo-file");
@@ -874,16 +932,40 @@ async function loadAndShowProfile() {
       saveBtn.textContent = "Saving…";
 
       const cc = document.getElementById("pf-country").value || "+91";
-      const digits = document.getElementById("pf-mobile").value.replace(/\D/g, "");
+      const digits = keepDigits(document.getElementById("pf-mobile").value, PROFILE_MOBILE_MAX_LENGTH);
       const combinedMobile = digits ? `${cc}${digits}` : "";
+      const name = document.getElementById("pf-name").value.trim();
+      const ageRaw = document.getElementById("pf-age").value.trim();
+      const age = ageRaw ? Number.parseInt(ageRaw, 10) : null;
+      const site = document.getElementById("pf-site").value.trim();
+      const location = document.getElementById("pf-location").value.trim();
+
+      if (name && name.length < 2) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+        showProfileInlineFeedback("Full name must be at least 2 characters", "error");
+        return;
+      }
+      if (digits && digits.length !== PROFILE_MOBILE_MAX_LENGTH) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+        showProfileInlineFeedback("Mobile number must be exactly 10 digits", "error");
+        return;
+      }
+      if (age !== null && (!Number.isInteger(age) || age < PROFILE_AGE_MIN || age > PROFILE_AGE_MAX)) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+        showProfileInlineFeedback("Age must be between 1 and 89", "error");
+        return;
+      }
 
       const payload = {
-        name: document.getElementById("pf-name").value.trim(),
+        name,
         mobile: combinedMobile,
         gender: document.getElementById("pf-gender").value,
-        age: parseInt(document.getElementById("pf-age").value, 10) || null,
-        site: document.getElementById("pf-site").value.trim(),
-        location: document.getElementById("pf-location").value.trim(),
+        age,
+        site,
+        location,
       };
 
       try {

@@ -3,8 +3,8 @@
  * Browsers cannot decode HEIC for <img> or canvas; conversion is required before preview/API upload.
  */
 
-/** Skip conversion above this size (bytes) to avoid freezing the tab. */
-export const MAX_HEIC_SOURCE_BYTES = 45 * 1024 * 1024;
+/** Skip conversion above this size (bytes) to avoid freezing very low-memory tabs. */
+export const MAX_HEIC_SOURCE_BYTES = 90 * 1024 * 1024;
 
 const HEIC_EXT = /\.(heic|heif)$/i;
 

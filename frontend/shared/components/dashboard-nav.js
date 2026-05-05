@@ -112,7 +112,7 @@ export function mountDashboardNav(activeTab) {
     <aside class="drawer-panel" role="dialog" aria-label="Navigation menu">
       <div class="drawer-panel__header">
         <a href="/" class="logo-container logo-container--nav">
-          <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="36" height="36"
+          <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="40" height="40"
             class="logo-img" decoding="async">
           <span class="logo-text">SiteSureLabs</span>
         </a>
@@ -124,7 +124,7 @@ export function mountDashboardNav(activeTab) {
       <div class="drawer-panel__footer">
         <a href="/" class="drawer-nav__item drawer-nav__item--home">
           <span class="drawer-nav__icon">${HOME_SVG}</span>
-          Back to Home
+          Home
         </a>
       </div>
     </aside>`;

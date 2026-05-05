@@ -26,6 +26,11 @@ async def get_current_user(
     user = await User.get(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if user.is_disabled:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This account has been disabled. Contact support if you believe this is an error.",
+        )
     return user
 
 

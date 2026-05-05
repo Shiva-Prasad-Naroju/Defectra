@@ -1,4 +1,4 @@
-﻿/* AI Analysis â€” ChatGPT-style layout (viewport column: stream + fixed dock) */
+/* AI Analysis â€” ChatGPT-style layout (viewport column: stream + fixed dock) */
 
 /* Lock chat workspace to the viewport: only the message stream scrolls; composer stays put. */
 .page--ai-chat {
@@ -24,6 +24,15 @@ body.landing-page.dashboard-page.page--ai-chat {
 
 .page--ai-chat #navbar {
   flex-shrink: 0;
+}
+
+/* Keep nav padding in line with chat gutters; tab pill width/centering is global (style.css 1fr / auto / 1fr). */
+.page--ai-chat #navbar .nav-container {
+  padding-inline: var(--cht-workbench-gutter);
+}
+
+.page--ai-chat #navbar .nav-dashboard-mode {
+  max-width: min(var(--cht-workbench-max), calc(100vw - 200px));
 }
 
 /* Back-to-home is moved into the chat topbar on AI page */
@@ -59,7 +68,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   margin: 0;
   /* Grey only shows outside the centered chat column (via body.page--ai-chat). */
   background: transparent;
-  font-family: "Google Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   color: #374151;
 }
 
@@ -110,6 +119,12 @@ body.landing-page.dashboard-page.page--ai-chat {
   .page--ai-chat .cht-topbar__inner,
   .page--ai-chat .cht-stream-inner,
   .page--ai-chat .cht-dock-inner {
+    transform: translateX(calc(-0.5 * var(--cht-sidebar-track)));
+  }
+}
+
+@media (min-width: 1020px) {
+  .page--ai-chat #navbar .nav-dashboard-mode {
     transform: translateX(calc(-0.5 * var(--cht-sidebar-track)));
   }
 }
@@ -264,6 +279,14 @@ body.landing-page.dashboard-page.page--ai-chat {
   color: #1558d6;
 }
 
+/* Keep Save PDF docked to the far-left edge of the page. */
+.page--ai-chat #gem-download-btn.cht-composer__pdf--outside {
+  position: fixed;
+  right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+}
+
 #gem-download-btn:hover:not(:disabled) {
   border-color: #b3ceff;
   background: #dbe9ff;
@@ -403,7 +426,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   align-items: center;
   gap: 6px;
   margin: 0 0 16px;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(1.125rem, 2.2vw, 1.375rem);
   font-weight: 400;
   line-height: 1.45;
@@ -458,7 +481,7 @@ body.landing-page.dashboard-page.page--ai-chat {
 .cht-photo-hint__support {
   margin: 0 auto;
   max-width: 42ch;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 400;
   line-height: 1.55;
@@ -1635,7 +1658,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   gap: 6px;
   margin: 0 0 10px;
   padding: 4px 11px 4px 8px;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1659,7 +1682,7 @@ body.landing-page.dashboard-page.page--ai-chat {
 .cht-stage__title {
   flex-shrink: 0;
   margin: 0 0 6px;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(1.5rem, 2.6vw, 1.875rem);
   font-weight: 500;
   line-height: 1.2;
@@ -1671,7 +1694,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   flex-shrink: 0;
   margin: 0 0 16px;
   max-width: 48ch;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
@@ -1735,7 +1758,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   padding: 0 28px;
   border: 0;
   border-radius: 999px;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1816,7 +1839,7 @@ body.landing-page.dashboard-page.page--ai-chat {
   border-radius: 999px;
   background: #f1f3f4;
   color: #3c4043;
-  font-family: "Google Sans", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 500;
   animation: cht-stage-fade-in 0.25s ease both;

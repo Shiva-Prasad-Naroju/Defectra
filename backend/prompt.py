@@ -11,6 +11,23 @@ This file defines:
 # VISION ANALYSIS PROMPT (IMAGE → REPORT)
 # --------------------------------------------------
 
+# One-shot vision gate: JSON only, before the full PMO report (low token cost).
+CONSTRUCTION_RELEVANCE_CLASSIFIER_PROMPT = """You gate images for a construction / site inspection product.
+
+Decide if THIS image is appropriate for **construction or infrastructure defect inspection** (work sites, buildings under work, structural elements, MEP, roads/bridges in an engineering context, visible damage to built structures, etc.).
+
+Reply with **only** one JSON object (no markdown fences, no explanation), exactly this shape:
+{"relevant":true}
+or
+{"relevant":false}
+
+Set "relevant" to **false** when the image is clearly **not** inspection material, for example: portraits or selfies, pets, food, unrelated memes, generic office/home scenes with no construction, pure nature with no structures, screenshots of apps or text, products on a desk, or stock photos with no site/engineering context.
+
+Set "relevant" to **true** when any meaningful construction, building exterior/interior under inspection, infrastructure, or site defect context is visible—even if subtle.
+
+If genuinely ambiguous, choose **true** so real site photos are not blocked."""
+
+
 PMO_DEFECT_INSPECTION_PROMPT = """
 You are a professional construction inspection AI.
 

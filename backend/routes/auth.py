@@ -21,8 +21,14 @@ PROFILE_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-MSG_ADMIN_USE_USER_PORTAL = "Admin accounts must log in through the Admin Login portal."
+MSG_ADMIN_USE_USER_PORTAL = "Please sign in via the Login as Admin to access the Admin Portal."
 MSG_ADMIN_PORTAL_USER_ONLY = "This sign-in is for administrator accounts only. Use the standard login for your account."
+PROFILE_NAME_MAX_LENGTH = 80
+PROFILE_SITE_MAX_LENGTH = 80
+PROFILE_LOCATION_MAX_LENGTH = 120
+PROFILE_AGE_MIN = 1
+PROFILE_AGE_MAX = 89
+PROFILE_GENDERS = {"Male", "Female", "Other"}
 
 
 def _normalize_email(email: EmailStr | str) -> str:
@@ -82,6 +88,10 @@ async def login(body: LoginRequest):
         logger.warning("failed login attempt for email: %s", body.email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    if user.is_disabled:
+        logger.warning("disabled user attempted login: %s", body.email)
+        raise HTTPException(status_code=403, detail="This account has been disabled.")
+
     if user.role == "admin":
         logger.warning("admin user blocked from user login: %s", user.email)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=MSG_ADMIN_USE_USER_PORTAL)
@@ -108,6 +118,10 @@ async def admin_login(body: LoginRequest):
     if not user or not verify_password(body.password, user.password):
         logger.warning("failed admin login attempt for email: %s", body.email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.is_disabled:
+        logger.warning("disabled admin attempted login: %s", body.email)
+        raise HTTPException(status_code=403, detail="This administrator account has been disabled.")
 
     if user.role != "admin":
         logger.warning("non-admin blocked from admin login: %s", user.email)
@@ -161,17 +175,36 @@ async def get_profile(user: User = Depends(get_current_user)):
 @router.put("/profile")
 async def update_profile(body: ProfileUpdate, user: User = Depends(get_current_user)):
     if body.name is not None:
-        user.name = body.name.strip() or None
+        name = body.name.strip()
+        if name and len(name) < 2:
+            raise HTTPException(status_code=400, detail="Full name must be at least 2 characters")
+        if len(name) > PROFILE_NAME_MAX_LENGTH:
+            raise HTTPException(status_code=400, detail="Full name is too long")
+        user.name = name or None
     if body.mobile is not None:
-        user.mobile = body.mobile.strip() or None
+        mobile = body.mobile.strip()
+        if mobile and not re.fullmatch(r"\+[0-9]{8,15}", mobile):
+            raise HTTPException(status_code=400, detail="Enter a valid mobile number")
+        user.mobile = mobile or None
     if body.gender is not None:
-        user.gender = body.gender.strip() or None
+        gender = body.gender.strip()
+        if gender and gender not in PROFILE_GENDERS:
+            raise HTTPException(status_code=400, detail="Select a valid gender")
+        user.gender = gender or None
     if body.age is not None:
-        user.age = body.age if body.age > 0 else None
+        if body.age < PROFILE_AGE_MIN or body.age > PROFILE_AGE_MAX:
+            raise HTTPException(status_code=400, detail="Age must be between 1 and 89")
+        user.age = body.age
     if body.site is not None:
-        user.site = body.site.strip() or None
+        site = body.site.strip()
+        if len(site) > PROFILE_SITE_MAX_LENGTH:
+            raise HTTPException(status_code=400, detail="Site is too long")
+        user.site = site or None
     if body.location is not None:
-        user.location = body.location.strip() or None
+        location = body.location.strip()
+        if len(location) > PROFILE_LOCATION_MAX_LENGTH:
+            raise HTTPException(status_code=400, detail="Location is too long")
+        user.location = location or None
 
     await user.save()
     logger.info("profile updated: %s", user.email)

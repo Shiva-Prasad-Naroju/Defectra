@@ -68,7 +68,7 @@
     .admin-nav__back:hover { text-decoration: underline; }
 
     /* ── Metric stat cards (layout: icon + trend / number / label) ── */
-    .stats-block { margin-bottom: 1.25rem; }
+    .stats-block { margin-bottom: 1.25rem; position: relative; padding-top: 1.1rem; }
     .stats-row--metric {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -190,6 +190,14 @@
       margin-top: 0.35rem;
       font-family: Montserrat, system-ui, sans-serif;
     }
+    .stat-card__muted {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #d97706;
+      margin-top: 0.25rem;
+      font-family: Montserrat, system-ui, sans-serif;
+      letter-spacing: 0.01em;
+    }
     .stat-delta {
       position: absolute;
       top: -0.1rem;
@@ -240,8 +248,11 @@
       align-items: center;
       justify-content: flex-end;
       gap: 0.45rem;
-      margin-top: 0.75rem;
+      margin-top: 0;
       min-height: 1.1rem;
+      position: absolute;
+      right: 0;
+      top: 0;
     }
     .stats-live__dot {
       width: 6px;
@@ -292,6 +303,14 @@
       0%   { transform: scale(1);   opacity: 0.75; }
       75%, 100% { transform: scale(2.2); opacity: 0; }
     }
+    /* One-shot subtle cue when metrics silently sync (no card flash / count-up). */
+    @keyframes stats-live-pulse {
+      0%, 100% { opacity: 1; filter: brightness(1); }
+      40% { opacity: 0.82; filter: brightness(0.97); }
+    }
+    .stats-live.stats-live--tick {
+      animation: stats-live-pulse 0.55s ease;
+    }
 
     /* New-row highlight for tables */
     @keyframes row-slide-in {
@@ -332,6 +351,7 @@
     .summary-chip__icon--total { background: #eff6ff; color: #2563eb; }
     .summary-chip__icon--active { background: #f0fdf4; color: #16a34a; }
     .summary-chip__icon--admin { background: #fef3c7; color: #d97706; }
+    .summary-chip__icon--disabled { background: #fef2f2; color: #dc2626; }
     .summary-chip__val {
       font-size: 1.15rem;
       font-weight: 700;
@@ -467,32 +487,191 @@
     .users-view-option:hover { background: #f8fafc; }
     .users-view-option.active { background: #eff6ff; color: #1d4ed8; }
 
+    /* ── Users tab: menus must not clip; grid sibling paint order overlays absolute children ── */
+    #tab-users.tab-panel.active {
+      overflow: visible !important;
+    }
     /* ── User Cards Grid ── */
     .users-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1rem;
+      overflow: visible;
     }
     @keyframes card-enter {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .user-card {
+      position: relative;
+      overflow: visible;
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
       border: 1px solid #f1f5f9;
       padding: 1.15rem;
-      transition: box-shadow .2s, border-color .2s, transform .2s;
+      transition: box-shadow .22s ease, border-color .22s ease, transform .22s ease;
       animation: card-enter .35s ease both;
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
     }
+    .user-card.user-card--sync {
+      animation: none !important;
+    }
     .user-card:hover {
       box-shadow: 0 4px 16px rgba(15,23,42,.08), 0 2px 6px rgba(15,23,42,.04);
       border-color: #e2e8f0;
       transform: translateY(-2px);
+    }
+    .user-card__shell {
+      position: relative;
+      overflow: visible;
+      padding-right: 2.35rem;
+    }
+    .user-card.user-card--menu-open,
+    .user-card:has(.user-card__dropdown.is-open) {
+      z-index: 200;
+      /* transform on an ancestor breaks position:fixed → viewport; keep menu truly viewport-fixed */
+      transform: none;
+      animation: none;
+    }
+    .user-card.user-card--menu-open:hover,
+    .user-card:has(.user-card__dropdown.is-open):hover {
+      transform: none;
+    }
+    .user-card__menu-anchor {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 8;
+      overflow: visible;
+    }
+    .user-card__kebab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      transition: background .18s ease, color .18s ease, box-shadow .18s ease, transform .12s ease;
+    }
+    .user-card__kebab:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+    .user-card__kebab:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    .user-card__kebab[aria-expanded="true"] {
+      background: #eff6ff;
+      color: #1d4ed8;
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+    }
+    .user-card__kebab:active { transform: scale(0.96); }
+    .user-card__kebab svg {
+      width: 18px;
+      height: 18px;
+    }
+    .user-card__dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 220px;
+      max-width: min(260px, calc(100vw - 2rem));
+      padding: 0.35rem;
+      background: #fff;
+      border: 1px solid #e8ecf1;
+      border-radius: 12px;
+      box-shadow:
+        0 4px 6px -1px rgba(15, 23, 42, 0.06),
+        0 12px 28px -4px rgba(15, 23, 42, 0.14),
+        0 0 0 1px rgba(15, 23, 42, 0.03);
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px) scale(0.98);
+      transform-origin: top right;
+      transition:
+        opacity .2s cubic-bezier(0.16, 1, 0.3, 1),
+        transform .22s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility .2s;
+      pointer-events: none;
+    }
+    /* Absolute placement is clipped by sibling cards; hide until viewport-fixed (--fixed). */
+    .user-card__dropdown.is-open:not(.user-card__dropdown--fixed) {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .user-card__dropdown.user-card__dropdown--fixed {
+      top: auto;
+      right: auto;
+      transition:
+        opacity .2s cubic-bezier(0.16, 1, 0.3, 1),
+        transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .user-card__dropdown.user-card__dropdown--fixed.user-card__dropdown--drop-up {
+      transform-origin: bottom right;
+    }
+    .user-card__dropdown.user-card__dropdown--fixed.is-open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      z-index: 10550;
+      box-shadow:
+        0 8px 20px -4px rgba(15, 23, 42, 0.1),
+        0 22px 48px -12px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(15, 23, 42, 0.04);
+    }
+    @media (max-width: 480px) {
+      .user-card__dropdown {
+        max-height: min(70vh, 360px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+    .user-card__dropdown-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      text-align: left;
+      gap: 0.5rem;
+      border: none;
+      background: transparent;
+      padding: 0.55rem 0.65rem;
+      min-height: 40px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: Montserrat, system-ui, sans-serif;
+      color: #334155;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease;
+    }
+    .user-card__dropdown-item:hover {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .user-card__dropdown-item--danger {
+      color: #b91c1c;
+    }
+    .user-card__dropdown-item--danger:hover {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .user-card__menu-divider {
+      height: 1px;
+      margin: 0.3rem 0.35rem;
+      background: linear-gradient(90deg, transparent, #e2e8f0 12%, #e2e8f0 88%, transparent);
+      border: none;
     }
     .user-card__top {
       display: flex;
@@ -521,6 +700,19 @@
     .user-card__avatar--amber { background: #f59e0b; }
     .user-card__avatar--emerald { background: #10b981; }
     .user-card__avatar--rose { background: #f43f5e; }
+    .user-card__avatar--photo {
+      padding: 0;
+      background: #e2e8f0;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .user-card__avatar--photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
     .user-card__info {
       flex: 1;
       min-width: 0;
@@ -555,6 +747,13 @@
     }
     .user-card__badge--admin { background: #dbeafe; color: #1e40af; }
     .user-card__badge--user { background: #f0fdf4; color: #166534; }
+    .user-card__badge--active { background: #ecfdf5; color: #047857; }
+    .user-card__badge--disabled { background: #fff7ed; color: #c2410c; }
+    .user-card.is-disabled {
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .user-card.is-disabled .user-card__avatar { filter: grayscale(0.25); opacity: 0.92; }
     .user-card__stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -584,11 +783,19 @@
     }
     .user-card__footer {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: space-between;
       gap: 0.5rem;
+      flex-wrap: wrap;
       padding-top: 0.55rem;
       border-top: 1px solid #f1f5f9;
+    }
+    .log-action {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+      line-height: 1.4;
+      font-family: Montserrat, system-ui, sans-serif;
     }
     .user-card__date {
       font-size: 0.72rem;
@@ -625,7 +832,7 @@
       padding: 0.85rem 0.95rem;
       border-radius: 12px;
     }
-    .users-grid.users-grid--tile .user-card__top {
+    .users-grid.users-grid--tile .user-card__shell {
       min-width: 0;
       flex: 1 1 44%;
       margin-right: 0.2rem;
@@ -720,9 +927,7 @@
     }
 
     /* ── Date-grouped upload sections ── */
-    .upload-date-group {
-      margin-bottom: 1.5rem;
-    }
+    .upload-date-group { margin-bottom: 1.5rem; }
     .upload-date-group:last-child {
       margin-bottom: 0;
     }
@@ -731,7 +936,12 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: 0.85rem;
-      padding: 0 0.15rem;
+      padding: 0.35rem 0.1rem;
+      position: sticky;
+      top: 116px;
+      z-index: 12;
+      background: rgba(248,250,252,.96);
+      backdrop-filter: blur(2px);
     }
     .upload-date-header__label {
       font-family: Montserrat, system-ui, sans-serif;
@@ -758,63 +968,24 @@
       background: #e2e8f0;
     }
 
-    /* ── All Uploads filter/sort controls ── */
+    /* ── All Uploads inline filter/timeline controls ── */
     .all-uploads-toolbar {
       display: flex;
-      justify-content: flex-end;
-      margin-bottom: .85rem;
-      position: relative;
+      justify-content: space-between;
+      align-items: end;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      padding: .7rem .05rem .8rem;
+      border-bottom: 1px solid #eef2f7;
     }
-    .all-uploads-sort-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .5rem .8rem;
-      border: 1px solid #dbe3ed;
-      border-radius: 10px;
-      background: #fff;
-      color: #334155;
-      font-size: .8rem;
-      font-weight: 600;
-      font-family: Montserrat, system-ui, sans-serif;
-      cursor: pointer;
-      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    .all-uploads-filter-inline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: .6rem;
+      flex: 1 1 620px;
     }
-    .all-uploads-sort-btn:hover {
-      border-color: #cbd5e1;
-      background: #f8fafc;
-    }
-    .all-uploads-sort-btn.active {
-      border-color: #2563eb;
-      color: #1d4ed8;
-      background: #eff6ff;
-      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-    }
-    .all-uploads-sort-panel {
-      position: absolute;
-      top: calc(100% + .5rem);
-      right: 0;
-      width: min(300px, calc(100vw - 2rem));
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      box-shadow: 0 16px 38px rgba(15,23,42,.16);
-      padding: .8rem;
-      z-index: 30;
-      display: none;
-    }
-    .all-uploads-sort-panel.open { display: block; }
-    .all-uploads-sort-panel__title {
-      font-size: .74rem;
-      color: #64748b;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin: 0 0 .6rem;
-      font-family: Montserrat, system-ui, sans-serif;
-    }
-    .all-uploads-sort-field { margin-bottom: .7rem; }
-    .all-uploads-sort-field label {
+    .all-uploads-filter-field label {
       display: block;
       font-size: .74rem;
       color: #64748b;
@@ -822,20 +993,45 @@
       font-weight: 600;
       font-family: Montserrat, system-ui, sans-serif;
     }
-    .all-uploads-sort-field select {
+    .all-uploads-filter-field select,
+    .all-uploads-filter-field input[type="date"] {
       width: 100%;
-      border: 1px solid #dbe3ed;
+      border: 1px solid #e2e8f0;
       border-radius: 9px;
       padding: .48rem .55rem;
-      font-size: .82rem;
+      font-size: .78rem;
       color: #1e293b;
       background: #fff;
       font-family: inherit;
     }
-    .all-uploads-sort-field select:focus {
+    .all-uploads-filter-field select:focus,
+    .all-uploads-filter-field input[type="date"]:focus {
       outline: none;
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+    .all-uploads-filter-field--custom-date{min-width: 155px}
+    .all-uploads-toolbar__side {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      margin-left: auto;
+    }
+    .all-uploads-sort-inline {
+      font-size: .75rem;
+      color: #64748b;
+      font-weight: 600;
+      font-family: Montserrat, system-ui, sans-serif;
+    }
+    .all-uploads-sort-select {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: .42rem .55rem;
+      font-size: .78rem;
+      color: #334155;
+      background: #fff;
+      font-family: Montserrat, system-ui, sans-serif;
+      min-width: 112px;
     }
     .all-uploads-sort-actions {
       display: flex;
@@ -991,9 +1187,67 @@
     .confirm-modal__btn--danger:hover {
       background: #dc2626;
     }
-    .confirm-modal__btn--danger:disabled {
+    .confirm-modal__btn--warn {
+      background: #ea580c;
+      color: #fff;
+    }
+    .confirm-modal__btn--warn:hover {
+      background: #c2410c;
+    }
+    .confirm-modal__btn--danger:disabled,
+    .confirm-modal__btn--warn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+    .confirm-modal__btn--primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .confirm-modal__btn--primary:hover {
+      background: #1d4ed8;
+    }
+    .confirm-modal__btn--primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* ── Report preview grid ── */
+    .report-preview-modal-grid-wrap {
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+    }
+    .report-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .report-preview-item {
+      border: 1px solid #e8eef5;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      aspect-ratio: 1 / 1;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    .report-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .report-preview-empty {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-family: Montserrat, system-ui, sans-serif;
+      margin: 0.1rem 0 0.2rem;
+    }
+    #reportImageCount { cursor: pointer; }
+    @media (max-width: 900px) {
+      .report-preview-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    }
+    @media (max-width: 640px) {
+      .report-preview-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
     }
 
     /* ── Toast notification ── */
@@ -1143,6 +1397,98 @@
       }
       .user-uploads-modal__meta { max-width: 62vw; }
     }
+
+    .admin-sheet-narrow.user-uploads-modal__card {
+      width: min(440px, calc(100vw - 1.25rem));
+      max-height: min(82vh, 580px);
+    }
+    .admin-profile-grid {
+      display: grid;
+      grid-template-columns: minmax(100px, 38%) 1fr;
+      gap: 0.5rem 0.85rem;
+      align-items: baseline;
+      font-family: Montserrat, system-ui, sans-serif;
+    }
+    .admin-profile-grid dt {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+    }
+    .admin-profile-grid dd {
+      margin: 0;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #0f172a;
+      word-break: break-word;
+    }
+    .admin-form-field { margin-bottom: 0.9rem; }
+    .admin-form-field label {
+      display: block;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.35rem;
+      font-family: Montserrat, system-ui, sans-serif;
+    }
+    .admin-form-field input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.55rem 0.7rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .admin-form-field input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .admin-form-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid #f1f5f9;
+    }
+    .admin-form-actions .btn { min-height: 40px; padding: 0.45rem 1rem; font-size: 0.82rem; }
+    .admin-role-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 0.75rem 0 0.25rem;
+    }
+    .admin-role-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0.65rem 0.75rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      font-family: Montserrat, system-ui, sans-serif;
+    }
+    .admin-role-option:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .admin-role-option:has(input:checked) {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+    .admin-role-option input { margin-top: 0.2rem; accent-color: #2563eb; }
+    .admin-role-option strong { display: block; font-size: 0.84rem; color: #0f172a; }
+    .admin-role-option span {
+      display: block;
+      margin-top: 0.15rem;
+      font-size: 0.76rem;
+      color: #64748b;
+      font-weight: 500;
+      line-height: 1.35;
+    }
   </style>
 </head>
 <body>
@@ -1153,7 +1499,7 @@
         <img src="/MyHomeLogo/MyHomeLogo.png" alt="" width="40" height="40" decoding="async" style="display:block;flex-shrink:0;width:clamp(34px,4.2vw,42px);height:clamp(34px,4.2vw,42px);object-fit:contain">
         <span class="admin-nav__logo-text">SiteSureLabs</span>
       </a>
-      <h1 class="admin-nav__title">Admin Dashboard<span class="live-dot" title="Live — auto-refreshing"></span></h1>
+      <h1 class="admin-nav__title">Admin Dashboard<span class="live-dot" title="Live — background sync"></span></h1>
       <div class="admin-nav__actions" id="admin-nav-actions">
         <a href="/" class="admin-nav__back">← Back to site</a>
         <!-- profile icon injected by shared/profile-nav.js -->
@@ -1187,6 +1533,7 @@
                 <span class="stat-delta" id="deltaUsers"></span>
               </div>
               <div class="stat-label">Users</div>
+              <div class="stat-card__muted" id="statUsersDisabledMsg" style="display:none" aria-live="polite"></div>
             </div>
           </div>
         </div>
@@ -1252,6 +1599,7 @@
       <button class="tab-btn active" data-tab="all-uploads">All Uploads</button>
       <button class="tab-btn" data-tab="users">Users</button>
       <button class="tab-btn" data-tab="logs">Activity Logs</button>
+      <button class="tab-btn" data-tab="report">Report</button>
     </div>
 
     <!-- Users tab -->
@@ -1283,6 +1631,15 @@
           <div>
             <div class="summary-chip__val" id="sumAdmins">–</div>
             <div class="summary-chip__label">Admins</div>
+          </div>
+        </div>
+        <div class="summary-chip">
+          <div class="summary-chip__icon summary-chip__icon--disabled">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </div>
+          <div>
+            <div class="summary-chip__val" id="sumDisabled">–</div>
+            <div class="summary-chip__label">Disabled</div>
           </div>
         </div>
       </div>
@@ -1330,31 +1687,39 @@
     <!-- All Uploads tab -->
     <div class="tab-panel active" id="tab-all-uploads">
       <div class="all-uploads-toolbar" id="allUploadsToolbar">
-        <button class="all-uploads-sort-btn" id="allUploadsSortBtn" type="button" aria-expanded="false" aria-controls="allUploadsSortPanel">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M6 12h12"/><path d="M10 18h4"/></svg>
-          Sort
-        </button>
-        <div class="all-uploads-sort-panel" id="allUploadsSortPanel">
-          <p class="all-uploads-sort-panel__title">Filter uploads</p>
-          <div class="all-uploads-sort-field">
+        <div class="all-uploads-filter-inline">
+          <div class="all-uploads-filter-field">
             <label for="allUploadsDayFilter">Day</label>
             <select id="allUploadsDayFilter">
               <option value="all">All days</option>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
               <option value="last7">Last 7 days</option>
+              <option value="custom">Custom</option>
             </select>
           </div>
-          <div class="all-uploads-sort-field">
+          <div class="all-uploads-filter-field">
             <label for="allUploadsUserFilter">User</label>
             <select id="allUploadsUserFilter">
               <option value="all">All users</option>
             </select>
           </div>
-          <div class="all-uploads-sort-actions">
-            <button class="all-uploads-sort-clear" type="button" id="allUploadsSortClear">Clear</button>
-            <button class="all-uploads-sort-apply" type="button" id="allUploadsSortApply">Apply</button>
+          <div class="all-uploads-filter-field all-uploads-filter-field--custom-date" id="allUploadsDateFromWrap" style="display:none">
+            <label for="allUploadsDateFrom">From</label>
+            <input type="date" id="allUploadsDateFrom" />
           </div>
+          <div class="all-uploads-filter-field all-uploads-filter-field--custom-date" id="allUploadsDateToWrap" style="display:none">
+            <label for="allUploadsDateTo">To</label>
+            <input type="date" id="allUploadsDateTo" />
+          </div>
+        </div>
+        <div class="all-uploads-toolbar__side">
+          <label class="all-uploads-sort-inline" for="allUploadsSortOrder">Sort:</label>
+          <select id="allUploadsSortOrder" class="all-uploads-sort-select">
+            <option value="newest">Newest ↓</option>
+            <option value="oldest">Oldest ↑</option>
+          </select>
+          <button class="all-uploads-sort-clear" type="button" id="allUploadsSortClear">Clear</button>
         </div>
       </div>
       <div id="allUploadsContainer"></div>
@@ -1387,6 +1752,62 @@
         <div id="logsEmpty" class="empty" style="display:none">No logs found.</div>
       </div>
     </div>
+
+    <!-- Report tab -->
+    <div class="tab-panel" id="tab-report">
+      <div class="card">
+        <div style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:end">
+          <div class="form-group" style="margin-bottom:0;min-width:200px">
+            <label for="reportDayFilter">Day</label>
+            <select id="reportDayFilter">
+              <option value="">Select day</option>
+              <option value="all">All days</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7">Last 7 days</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="reportDateFrom">From</label>
+            <input type="date" id="reportDateFrom" />
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="reportDateTo">To</label>
+            <input type="date" id="reportDateTo" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;min-width:220px">
+            <label for="reportUser">User</label>
+            <select id="reportUser">
+              <option value="">Select user</option>
+              <option value="all">All users</option>
+            </select>
+          </div>
+        </div>
+        <div id="reportImageCount" style="display:none;margin-top:-.35rem;margin-bottom:.8rem;font-size:.82rem;color:#64748b;font-family:Montserrat,system-ui,sans-serif"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="user-uploads-modal" id="reportPreviewModal" role="dialog" aria-modal="true" aria-labelledby="reportPreviewTitle">
+    <div class="user-uploads-modal__card">
+      <div class="user-uploads-modal__header">
+        <div class="user-uploads-modal__title-wrap">
+          <h3 class="user-uploads-modal__title" id="reportPreviewTitle">Report image preview</h3>
+          <div class="user-uploads-modal__meta" id="reportPreviewMeta"></div>
+        </div>
+        <button type="button" class="user-uploads-modal__close" id="reportPreviewClose" aria-label="Close preview">&times;</button>
+      </div>
+      <div class="user-uploads-modal__body">
+        <div class="report-preview-modal-grid-wrap">
+          <div class="report-preview-grid" id="reportPreviewGrid"></div>
+        </div>
+        <p class="report-preview-empty" id="reportPreviewEmpty" style="display:none">No images found for current selection.</p>
+      </div>
+      <div id="reportGenerateWrap" style="display:none;padding:.85rem 1.15rem;border-top:1px solid #e2e8f0;background:#fff;text-align:center">
+        <button class="btn btn-primary" id="reportGenerateBtn">Generate Report</button>
+      </div>
+    </div>
   </div>
 
   <!-- Delete confirmation modal -->
@@ -1400,6 +1821,84 @@
       <div class="confirm-modal__actions">
         <button class="confirm-modal__btn confirm-modal__btn--cancel" id="deleteCancelBtn">Cancel</button>
         <button class="confirm-modal__btn confirm-modal__btn--danger" id="deleteConfirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User access management confirmation -->
+  <div class="confirm-modal" id="accessModal" role="dialog" aria-modal="true" aria-labelledby="accessModalTitle">
+    <div class="confirm-modal__card">
+      <div class="confirm-modal__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.007H12v-.007Z" /></svg>
+      </div>
+      <h3 class="confirm-modal__title" id="accessModalTitle">Confirm action</h3>
+      <p class="confirm-modal__msg" id="accessModalMsg"></p>
+      <div class="confirm-modal__actions">
+        <button type="button" class="confirm-modal__btn confirm-modal__btn--cancel" id="accessCancelBtn">Cancel</button>
+        <button type="button" class="confirm-modal__btn confirm-modal__btn--danger" id="accessConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User profile (read-only) -->
+  <div class="user-uploads-modal" id="userProfileModal" role="dialog" aria-modal="true" aria-labelledby="userProfileTitle">
+    <div class="user-uploads-modal__card admin-sheet-narrow">
+      <div class="user-uploads-modal__header">
+        <div class="user-uploads-modal__title-wrap">
+          <h3 class="user-uploads-modal__title" id="userProfileTitle">User profile</h3>
+          <div class="user-uploads-modal__meta" id="userProfileMeta"></div>
+        </div>
+        <button type="button" class="user-uploads-modal__close" id="userProfileClose" aria-label="Close profile">&times;</button>
+      </div>
+      <div class="user-uploads-modal__body" id="userProfileBody"></div>
+    </div>
+  </div>
+
+  <!-- Reset password -->
+  <div class="user-uploads-modal" id="userResetPassModal" role="dialog" aria-modal="true" aria-labelledby="userResetPassTitle">
+    <div class="user-uploads-modal__card admin-sheet-narrow">
+      <div class="user-uploads-modal__header">
+        <div class="user-uploads-modal__title-wrap">
+          <h3 class="user-uploads-modal__title" id="userResetPassTitle">Reset password</h3>
+          <div class="user-uploads-modal__meta" id="userResetPassMeta"></div>
+        </div>
+        <button type="button" class="user-uploads-modal__close" id="userResetPassClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="user-uploads-modal__body">
+        <p style="margin:0 0 0.85rem;font-size:.82rem;color:#64748b;line-height:1.5;font-family:Montserrat,system-ui,sans-serif">Set a new password for this account. The user should change it after signing in.</p>
+        <div class="admin-form-field">
+          <label for="userResetPassNew">New password</label>
+          <input type="password" id="userResetPassNew" autocomplete="new-password" minlength="8" />
+        </div>
+        <div class="admin-form-field">
+          <label for="userResetPassConfirm">Confirm password</label>
+          <input type="password" id="userResetPassConfirm" autocomplete="new-password" minlength="8" />
+        </div>
+        <div class="admin-form-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="userResetPassCancel">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="userResetPassSubmit">Reset password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change role -->
+  <div class="user-uploads-modal" id="userChangeRoleModal" role="dialog" aria-modal="true" aria-labelledby="userChangeRoleTitle">
+    <div class="user-uploads-modal__card admin-sheet-narrow">
+      <div class="user-uploads-modal__header">
+        <div class="user-uploads-modal__title-wrap">
+          <h3 class="user-uploads-modal__title" id="userChangeRoleTitle">Change role</h3>
+          <div class="user-uploads-modal__meta" id="userChangeRoleMeta"></div>
+        </div>
+        <button type="button" class="user-uploads-modal__close" id="userChangeRoleClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="user-uploads-modal__body">
+        <p style="margin:0 0 0.35rem;font-size:.82rem;color:#64748b;font-family:Montserrat,system-ui,sans-serif">Select the account type for this user.</p>
+        <div class="admin-role-options" id="userChangeRoleOptions"></div>
+        <div class="admin-form-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="userChangeRoleCancel">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="userChangeRoleSubmit">Save role</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1431,19 +1930,27 @@
   </div>
 
   <script type="module">
-    import { requireAdmin, apiFetch } from "/shared/auth.js";
+    import { requireAdmin, apiFetch, getUser } from "/shared/auth.js";
     import { mountProfileNav } from "/shared/profile-nav.js";
+    import { formatApiDetail } from "/shared/format-api-detail.js";
 
     const token = requireAdmin();
     if (!token) throw new Error("redirect");
 
     mountProfileNav(document.getElementById("admin-nav-actions"));
 
-    const POLL_INTERVAL = 5000;
-    let prevStats = { total_users: null, total_uploads: null, total_logs: null };
-    let prevUserIds = new Set();
+    /** Background sync: spaced timers avoid bursty API + DOM work; silent mode skips unchanged data. */
+    const STATS_BG_SYNC_MS = 28000;
+    const TAB_BG_SYNC_MS = 35000;
+    let prevStats = { total_users: null, total_uploads: null, total_logs: null, disabled_users: null };
     let prevLogIds = new Set();
     let isFirstLoad = true;
+    let initialStatsLoaded = false;
+    let lastUsersListFingerprint = "";
+    let lastLogsSyncKey = "";
+    let suppressNextUserCardAnimation = false;
+    let statsBgTimer = null;
+    let tabBgTimer = null;
 
     /* ═══════════════════════════════════════════════
        Lightbox
@@ -1451,11 +1958,31 @@
     const lightbox     = document.getElementById("lightbox");
     const lightboxImg  = document.getElementById("lightbox-img");
     const lightboxMeta = document.getElementById("lightbox-meta");
+    let lightboxItems = [];
+    let lightboxIndex = -1;
+
+    function renderLightboxCurrent() {
+      const current = lightboxItems[lightboxIndex];
+      if (!current) return;
+      lightboxImg.src = current.src;
+      const meta = current.meta || "";
+      lightboxMeta.textContent = meta;
+      lightboxMeta.style.display = meta ? "block" : "none";
+    }
 
     function openLightbox(src, meta) {
-      lightboxImg.src = src;
-      lightboxMeta.textContent = meta || "";
-      lightboxMeta.style.display = meta ? "block" : "none";
+      lightboxItems = [{ src, meta: meta || "" }];
+      lightboxIndex = 0;
+      renderLightboxCurrent();
+      lightbox.classList.add("lightbox--open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function openLightboxGallery(items, startIndex = 0) {
+      if (!items || !items.length) return;
+      lightboxItems = items;
+      lightboxIndex = Math.max(0, Math.min(startIndex, items.length - 1));
+      renderLightboxCurrent();
       lightbox.classList.add("lightbox--open");
       document.body.style.overflow = "hidden";
     }
@@ -1463,6 +1990,17 @@
     function closeLightbox() {
       lightbox.classList.remove("lightbox--open");
       document.body.style.overflow = "";
+      lightboxItems = [];
+      lightboxIndex = -1;
+    }
+
+    function moveLightbox(delta) {
+      if (!lightbox.classList.contains("lightbox--open")) return;
+      if (!lightboxItems.length) return;
+      const next = lightboxIndex + delta;
+      if (next < 0 || next >= lightboxItems.length) return;
+      lightboxIndex = next;
+      renderLightboxCurrent();
     }
 
     document.getElementById("lightbox-close").addEventListener("click", closeLightbox);
@@ -1470,16 +2008,38 @@
       if (e.target === lightbox) closeLightbox();
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && lightbox.classList.contains("lightbox--open")) closeLightbox();
+      if (!lightbox.classList.contains("lightbox--open")) return;
+      if (e.key === "Escape") { closeLightbox(); return; }
+      if (e.key === "ArrowLeft") { e.preventDefault(); moveLightbox(-1); return; }
+      if (e.key === "ArrowRight") { e.preventDefault(); moveLightbox(1); }
     });
 
     function wireGridLightbox(container) {
-      container.querySelectorAll(".upload-item").forEach((item) => {
+      const items = Array.from(container.querySelectorAll(".upload-item")).map((item) => {
         const img = item.querySelector("img");
         const metaEl = item.querySelector(".meta");
-        if (!img) return;
+        if (!img) return null;
+        return { img, meta: metaEl?.textContent?.trim() || "" };
+      }).filter(Boolean);
+      items.forEach((entry, idx) => {
+        const img = entry.img;
         img.addEventListener("click", () => {
-          openLightbox(img.src, metaEl?.textContent?.trim() || "");
+          openLightboxGallery(
+            items.map((x) => ({ src: x.img.src, meta: x.meta })),
+            idx,
+          );
+        });
+      });
+    }
+
+    function wireReportPreviewLightbox(container) {
+      const images = Array.from(container.querySelectorAll(".report-preview-item img"));
+      images.forEach((img, idx) => {
+        img.addEventListener("click", () => {
+          openLightboxGallery(
+            images.map((x) => ({ src: x.src, meta: "Report preview" })),
+            idx,
+          );
         });
       });
     }
@@ -1512,7 +2072,40 @@
 
     function setStatsUpdatedLabel() {
       const el = document.getElementById("statsUpdatedText");
-      if (el) el.textContent = "Updated just now";
+      if (el) el.textContent = "Live · syncing quietly";
+    }
+
+    function statsSyncFingerprint(s) {
+      if (!s || typeof s !== "object") return "";
+      return JSON.stringify({
+        total_users: s.total_users,
+        total_uploads: s.total_uploads,
+        total_logs: s.total_logs,
+        disabled_users: s.disabled_users ?? 0,
+        users_today: s.users_today ?? 0,
+        users_week: s.users_week ?? 0,
+        uploads_today: s.uploads_today ?? 0,
+        uploads_week: s.uploads_week ?? 0,
+        logs_today: s.logs_today ?? 0,
+        logs_week: s.logs_week ?? 0,
+      });
+    }
+
+    let liveLabelRelaxTimer = 0;
+    function bumpLiveSyncedIndicator() {
+      const wrap = document.getElementById("statsLive");
+      const text = document.getElementById("statsUpdatedText");
+      if (wrap) {
+        wrap.classList.remove("stats-live--tick");
+        void wrap.offsetWidth;
+        wrap.classList.add("stats-live--tick");
+      }
+      if (text) text.textContent = "Live · just updated";
+      clearTimeout(liveLabelRelaxTimer);
+      liveLabelRelaxTimer = setTimeout(() => {
+        const t = document.getElementById("statsUpdatedText");
+        if (t) t.textContent = "Live · syncing quietly";
+      }, 4000);
     }
 
     function flashCard(cardId, deltaId, diff) {
@@ -1539,6 +2132,15 @@
         btn.classList.add("active");
         document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
         if (btn.dataset.tab === "all-uploads") loadAllUploads();
+        else if (btn.dataset.tab === "users") loadUsers();
+        else if (btn.dataset.tab === "logs") {
+          loadLogs(
+            document.getElementById("dateFrom").value,
+            document.getElementById("dateTo").value,
+          );
+        } else if (btn.dataset.tab === "report") {
+          initReportTab();
+        }
       });
     });
 
@@ -1553,11 +2155,15 @@
     /* ═══════════════════════════════════════════════
        Stats — trends, skeleton → enter, count-up, live label
        ═══════════════════════════════════════════════ */
-    async function loadStats() {
+    async function loadStats(opts = {}) {
+      const silent = !!opts.silent;
+      if (silent && !initialStatsLoaded) return;
       try {
         const res = await apiFetch("/api/admin/stats");
         if (!res) return;
         const s = await res.json();
+
+        if (silent && statsSyncFingerprint(s) === statsSyncFingerprint(prevStats)) return;
 
         document.getElementById("trendUsersToday").textContent = formatTrendLineToday(s.users_today ?? 0);
         document.getElementById("trendUsersWeek").textContent = formatTrendLineWeek(s.users_week ?? 0);
@@ -1591,6 +2197,18 @@
               );
             });
           }, baseDelay);
+        } else if (silent) {
+          let metricsChanged = false;
+          for (const { key, elId } of pairs) {
+            const el = document.getElementById(elId);
+            const oldVal = prevStats[key];
+            const newVal = s[key];
+            if (oldVal !== newVal) {
+              el.textContent = String(newVal);
+              metricsChanged = true;
+            }
+          }
+          if (metricsChanged) bumpLiveSyncedIndicator();
         } else {
           for (const { key, elId, cardId, deltaId } of pairs) {
             const el = document.getElementById(elId);
@@ -1606,8 +2224,24 @@
           setStatsUpdatedLabel();
         }
 
+        const sub = document.getElementById("statUsersDisabledMsg");
+        if (sub) {
+          const d = s.disabled_users ?? 0;
+          if (d > 0) {
+            const next = `${d} disabled account${d === 1 ? "" : "s"}`;
+            if (sub.style.display !== "block" || sub.textContent !== next) {
+              sub.style.display = "block";
+              sub.textContent = next;
+            }
+          } else if (sub.style.display !== "none") {
+            sub.style.display = "none";
+            sub.textContent = "";
+          }
+        }
+
         prevStats = { ...s };
         if (isFirstLoad) isFirstLoad = false;
+        initialStatsLoaded = true;
       } catch (err) {
         console.error("Failed to load stats:", err);
         const live = document.getElementById("statsUpdatedText");
@@ -1625,6 +2259,26 @@
     let usersCurrentPage = 1;
     let usersViewMode = localStorage.getItem("admin_users_view_mode") || "card";
 
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function formatAdminLogAction(l) {
+      const labels = {
+        admin_disable_user: "Disabled account",
+        admin_enable_user: "Re-enabled account",
+        admin_delete_user: "Deleted account",
+        admin_reset_password: "Reset password",
+        admin_change_role: "Changed role",
+      };
+      const base = labels[l.action] || l.action;
+      if (l.target_email) return `${base} → ${escapeHtml(l.target_email)}`;
+      return escapeHtml(base);
+    }
+
     const AVATAR_COLORS = ["blue","indigo","violet","pink","teal","amber","emerald","rose"];
     function displayUserName(userLike) {
       const name = (userLike?.name || "").trim();
@@ -1639,9 +2293,21 @@
       return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
     }
 
+    /** Profile image path from API → URL for <img src> (matches /shared/profile-nav.js pattern). */
+    function adminProfilePhotoUrl(path) {
+      if (!path || typeof path !== "string") return "";
+      const trimmed = path.trim();
+      if (!trimmed) return "";
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      const rel = trimmed.replace(/^\/+/, "");
+      return `/${rel}`;
+    }
+
     function relativeTime(iso) {
       if (!iso) return "No activity";
-      const diff = Date.now() - new Date(iso).getTime();
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return "No activity";
+      const diff = Date.now() - t;
       const mins = Math.floor(diff / 60000);
       if (mins < 1) return "Just now";
       if (mins < 60) return `${mins}m ago`;
@@ -1654,7 +2320,9 @@
 
     function isActiveRecently(iso, days = 7) {
       if (!iso) return false;
-      return (Date.now() - new Date(iso).getTime()) < days * 86400000;
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return false;
+      return Date.now() - t < days * 86400000;
     }
 
     function getFilteredUsers() {
@@ -1675,8 +2343,14 @@
     function renderUsersSummary() {
       const all = allUsersData;
       document.getElementById("sumTotal").textContent = all.length;
-      document.getElementById("sumActive").textContent = all.filter(u => isActiveRecently(u.last_activity)).length;
-      document.getElementById("sumAdmins").textContent = all.filter(u => u.role === "admin").length;
+      document.getElementById("sumActive").textContent = all.filter(
+        (u) => !u.is_disabled && isActiveRecently(u.last_activity),
+      ).length;
+      document.getElementById("sumAdmins").textContent = all.filter((u) => u.role === "admin").length;
+      const sumDisabled = document.getElementById("sumDisabled");
+      if (sumDisabled) {
+        sumDisabled.textContent = all.filter((u) => u.is_disabled).length;
+      }
     }
 
     function renderUsersGrid() {
@@ -1698,22 +2372,63 @@
       if (usersCurrentPage > totalPages) usersCurrentPage = totalPages;
       const start = (usersCurrentPage - 1) * USERS_PER_PAGE;
       const page = filtered.slice(start, start + USERS_PER_PAGE);
+      const myId = getUser()?.user_id || null;
+      const skipCardEnter = suppressNextUserCardAnimation;
+      suppressNextUserCardAnimation = false;
 
       grid.innerHTML = page.map((u, i) => {
         const initial = (u.name || u.email || "?")[0].toUpperCase();
         const displayName = displayUserName(u);
         const color = avatarColor(u.email);
+        const photoUrl = adminProfilePhotoUrl(u.profile_photo);
+        const avatarBlock = photoUrl
+          ? `<div class="user-card__avatar user-card__avatar--photo"><img src="${escapeHtml(photoUrl)}" alt="" loading="lazy" decoding="async" /></div>`
+          : `<div class="user-card__avatar user-card__avatar--${color}">${initial}</div>`;
         const lastAct = relativeTime(u.last_activity);
-        const isActive = isActiveRecently(u.last_activity);
+        const isActive = !u.is_disabled && isActiveRecently(u.last_activity);
+        const disabled = !!u.is_disabled;
+        const isSelf = myId && u.id === myId;
+        const statusBadge = disabled
+          ? `<span class="user-card__badge user-card__badge--disabled">Disabled</span>`
+          : `<span class="user-card__badge user-card__badge--active">Active</span>`;
+        const roleBadge = u.role === "admin"
+          ? `<span class="user-card__badge user-card__badge--admin">Admin</span>`
+          : "";
+        const menuItems = [];
+        menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="profile" data-uid="${u.id}">View Profile</button>`);
+        menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="uploads" data-uid="${u.id}">View Uploads</button>`);
+        if (!isSelf) {
+          menuItems.push(`<div class="user-card__menu-divider" role="separator" aria-hidden="true"></div>`);
+          if (!disabled) {
+            menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="disable" data-uid="${u.id}">Disable user</button>`);
+          } else {
+            menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="enable" data-uid="${u.id}">Re-enable user</button>`);
+          }
+          menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="reset" data-uid="${u.id}">Reset password</button>`);
+          menuItems.push(`<button type="button" class="user-card__dropdown-item" role="menuitem" data-act="role" data-uid="${u.id}">Change role</button>`);
+          menuItems.push(`<div class="user-card__menu-divider" role="separator" aria-hidden="true"></div>`);
+          menuItems.push(`<button type="button" class="user-card__dropdown-item user-card__dropdown-item--danger" role="menuitem" data-act="delete" data-uid="${u.id}">Delete permanently</button>`);
+        }
+        const menuHtml = menuItems.join("");
+        const enterStyle = skipCardEnter ? "" : ` style="animation-delay:${i * 35}ms"`;
         return `
-        <div class="user-card" style="animation-delay:${i * 35}ms">
-          <div class="user-card__top">
-            <div class="user-card__avatar user-card__avatar--${color}">${initial}</div>
-            <div class="user-card__info">
-              <div class="user-card__name" title="${displayName}">${displayName}</div>
-              <div class="user-card__email" title="${u.email}">${u.email}</div>
-              <div class="user-card__badges">
-                <span class="user-card__badge user-card__badge--${u.role}">${u.role}</span>
+        <div class="user-card${disabled ? " is-disabled" : ""}${skipCardEnter ? " user-card--sync" : ""}" data-user-id="${escapeHtml(u.id)}"${enterStyle}>
+          <div class="user-card__shell">
+            <div class="user-card__menu-anchor">
+              <button type="button" class="user-card__kebab" aria-label="User actions" aria-expanded="false" aria-haspopup="true">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.85"/><circle cx="12" cy="12" r="1.85"/><circle cx="12" cy="19" r="1.85"/></svg>
+              </button>
+              <div class="user-card__dropdown" role="menu">${menuHtml}</div>
+            </div>
+            <div class="user-card__top">
+              ${avatarBlock}
+              <div class="user-card__info">
+                <div class="user-card__name" title="${displayName}">${displayName}</div>
+                <div class="user-card__email" title="${u.email}">${u.email}</div>
+                <div class="user-card__badges">
+                  ${statusBadge}
+                  ${roleBadge}
+                </div>
               </div>
             </div>
           </div>
@@ -1723,13 +2438,13 @@
               <span class="user-card__stat-label">Uploads</span>
             </div>
             <div class="user-card__stat">
-              <span class="user-card__stat-val" style="font-size:.78rem;color:${isActive ? "#16a34a" : "#94a3b8"}">${lastAct}</span>
+              <span class="user-card__stat-val" style="font-size:.78rem;color:${disabled ? "#f59e0b" : (isActive ? "#16a34a" : "#94a3b8")}">${lastAct}</span>
               <span class="user-card__stat-label">Last Active</span>
             </div>
           </div>
           <div class="user-card__footer">
             <span class="user-card__date">Joined ${new Date(u.created_at).toLocaleDateString()}</span>
-            <button class="user-card__action view-uploads-btn" data-uid="${u.id}" data-email="${u.email}" data-name="${displayName}">
+            <button type="button" class="user-card__action view-uploads-btn" data-uid="${u.id}" data-email="${u.email}" data-name="${displayName}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               View Uploads
             </button>
@@ -1834,19 +2549,63 @@
     });
     setUsersViewMode(usersViewMode);
 
-    async function loadUsers() {
+    function usersListFingerprint(users) {
+      if (!Array.isArray(users)) return "";
+      return users
+        .map((u) =>
+          `${u.id}\t${u.upload_count}\t${u.last_activity ?? ""}\t${u.is_disabled ? 1 : 0}\t${u.role}\t${u.email}\t${String(u.name || "").trim()}\t${u.profile_photo ?? ""}`,
+        )
+        .sort()
+        .join("\n");
+    }
+
+    async function loadUsers(opts = {}) {
+      const silent = !!opts.silent;
       try {
         const res = await apiFetch("/api/admin/users");
         if (!res) return;
         const users = await res.json();
 
-        const currentIds = new Set(users.map(u => u.id));
-        allUsersData = users;
-        prevUserIds = currentIds;
+        const fp = usersListFingerprint(users);
+        if (silent && fp === lastUsersListFingerprint) return;
 
+        let scrollY = 0;
+        let restoreUserId = null;
+        if (silent && lastUsersListFingerprint) {
+          scrollY = window.scrollY;
+          restoreUserId = activeUserCardMenuAnchor?.closest(".user-card")?.dataset?.userId ?? null;
+        }
+
+        closeAllUserKebabMenus();
+        lastUsersListFingerprint = fp;
+
+        if (silent) suppressNextUserCardAnimation = true;
+
+        allUsersData = users;
         renderUsersSummary();
         renderUsersGrid();
-      } catch (err) { console.error("Failed to load users:", err); }
+
+        if (silent && restoreUserId) {
+          requestAnimationFrame(() => {
+            window.scrollTo(0, scrollY);
+            const grid = document.getElementById("usersGrid");
+            const anchor = grid?.querySelector(`[data-user-id="${restoreUserId}"] .user-card__menu-anchor`);
+            const panel = anchor?.querySelector(".user-card__dropdown");
+            const kebab = anchor?.querySelector(".user-card__kebab");
+            if (anchor && panel && kebab) {
+              kebab.setAttribute("aria-expanded", "true");
+              panel.classList.add("is-open");
+              anchor.closest(".user-card")?.classList.add("user-card--menu-open");
+              activeUserCardMenuAnchor = anchor;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => positionUserDropdown(anchor));
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
     }
 
     /* ═══════════════════════════════════════════════
@@ -1880,7 +2639,14 @@
     }
 
     let allUploadsData = [];
-    let allUploadsFilters = { day: "all", user: "all" };
+    let allUploadsFilters = {
+      day: "all",
+      user: "all",
+      dateFrom: "",
+      dateTo: "",
+      sortOrder: "newest",
+    };
+    const flaggedUploadIds = new Set();
 
     function isSameDate(a, b) {
       return a.getFullYear() === b.getFullYear()
@@ -1888,10 +2654,25 @@
         && a.getDate() === b.getDate();
     }
 
+    function parseDateInputStart(value) {
+      if (!value) return null;
+      const [y, m, d] = String(value).split("-").map(Number);
+      if (!y || !m || !d) return null;
+      return new Date(y, m - 1, d, 0, 0, 0, 0);
+    }
+    function parseDateInputEnd(value) {
+      if (!value) return null;
+      const [y, m, d] = String(value).split("-").map(Number);
+      if (!y || !m || !d) return null;
+      return new Date(y, m - 1, d, 23, 59, 59, 999);
+    }
+
     function getFilteredAllUploads(items) {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const fromDate = parseDateInputStart(allUploadsFilters.dateFrom);
+      const toDate = parseDateInputEnd(allUploadsFilters.dateTo);
 
       return items.filter((d) => {
         const dt = new Date(d.created_at);
@@ -1903,6 +2684,10 @@
           const sevenDaysAgo = new Date(today);
           sevenDaysAgo.setDate(today.getDate() - 6);
           if (dt < sevenDaysAgo) return false;
+        }
+        if (allUploadsFilters.day === "custom") {
+          if (fromDate && dt < fromDate) return false;
+          if (toDate && dt > toDate) return false;
         }
 
         if (allUploadsFilters.user !== "all" && (d.email || "unknown") !== allUploadsFilters.user) return false;
@@ -1931,7 +2716,11 @@
       const empty = document.getElementById("allUploadsEmpty");
       if (!container || !empty) return;
 
-      const filtered = getFilteredAllUploads(items);
+      const filtered = getFilteredAllUploads(items).sort((a, b) => {
+        const da = new Date(a.created_at).getTime();
+        const db = new Date(b.created_at).getTime();
+        return allUploadsFilters.sortOrder === "oldest" ? da - db : db - da;
+      });
       if (filtered.length === 0) {
         container.innerHTML = "";
         empty.style.display = "block";
@@ -1939,15 +2728,28 @@
       }
       empty.style.display = "none";
 
-      const groups = groupByDate(filtered);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const timelineGroups = new Map([["today", []], ["yesterday", []], ["earlier", []]]);
+      for (const d of filtered) {
+        const dt = new Date(d.created_at);
+        if (isSameDate(dt, today)) timelineGroups.get("today").push(d);
+        else if (isSameDate(dt, yesterday)) timelineGroups.get("yesterday").push(d);
+        else timelineGroups.get("earlier").push(d);
+      }
+      const groups = [
+        { key: "today", label: "Today", items: timelineGroups.get("today") },
+        { key: "yesterday", label: "Yesterday", items: timelineGroups.get("yesterday") },
+        { key: "earlier", label: "Earlier", items: timelineGroups.get("earlier") },
+      ].filter((g) => g.items.length > 0);
       let html = "";
-      for (const [, group] of groups) {
-        const isToday = group.label === "Today";
+      for (const group of groups) {
+        const isToday = group.key === "today";
         html += `
           <div class="upload-date-group">
             <div class="upload-date-header">
-              <span class="upload-date-header__label${isToday ? " upload-date-header__label--today" : ""}">${group.label}</span>
-              <span class="upload-date-header__count">${group.items.length}</span>
+              <span class="upload-date-header__label${isToday ? " upload-date-header__label--today" : ""}">${group.label} (${group.items.length})</span>
               <span class="upload-date-header__line"></span>
             </div>
             <div class="upload-grid">${group.items.map((d) => `
@@ -2005,6 +2807,13 @@
     const deleteConfirmBtn = document.getElementById("deleteConfirmBtn");
     let pendingDeleteId    = null;
 
+    const accessModal = document.getElementById("accessModal");
+    const accessModalTitle = document.getElementById("accessModalTitle");
+    const accessModalMsg = document.getElementById("accessModalMsg");
+    const accessCancelBtn = document.getElementById("accessCancelBtn");
+    const accessConfirmBtn = document.getElementById("accessConfirmBtn");
+    let pendingAccess = null;
+
     function showToast(message, type = "success") {
       const toast = document.getElementById("toast");
       toast.textContent = message;
@@ -2012,26 +2821,103 @@
       setTimeout(() => { toast.classList.remove("toast--visible"); }, 3000);
     }
 
+    function refreshBodyModalLock() {
+      const o = (id, c) => document.getElementById(id)?.classList.contains(c);
+      const sheet =
+        o("userUploadsModal", "user-uploads-modal--open") ||
+        o("userProfileModal", "user-uploads-modal--open") ||
+        o("userResetPassModal", "user-uploads-modal--open") ||
+        o("userChangeRoleModal", "user-uploads-modal--open") ||
+        o("reportPreviewModal", "user-uploads-modal--open");
+      const dial = o("accessModal", "confirm-modal--open") || o("deleteModal", "confirm-modal--open");
+      document.body.style.overflow = sheet || dial ? "hidden" : "";
+    }
+
+    function closeAccessModal() {
+      if (!accessModal) return;
+      accessModal.classList.remove("confirm-modal--open");
+      pendingAccess = null;
+      if (accessConfirmBtn) accessConfirmBtn.disabled = false;
+      refreshBodyModalLock();
+    }
+
+    function openAccessConfirm(act, user) {
+      closeUserProfileModal();
+      closeUserResetPasswordModal();
+      closeUserChangeRoleModal();
+      closeDeleteModal();
+      pendingAccess = { act, user };
+      accessConfirmBtn.classList.remove("confirm-modal__btn--danger", "confirm-modal__btn--warn", "confirm-modal__btn--primary");
+      if (act === "delete") {
+        accessModalTitle.textContent = "Delete user permanently?";
+        accessModalMsg.textContent = `You are about to permanently remove ${user.email}. All of their uploads and stored files will be removed from the database and disk. This cannot be undone.`;
+        accessConfirmBtn.textContent = "Delete permanently";
+        accessConfirmBtn.classList.add("confirm-modal__btn--danger");
+      } else if (act === "disable") {
+        accessModalTitle.textContent = "Disable this user?";
+        accessModalMsg.textContent = `${user.email} will immediately lose the ability to sign in. Their uploads and profile data remain in the system.`;
+        accessConfirmBtn.textContent = "Disable user";
+        accessConfirmBtn.classList.add("confirm-modal__btn--warn");
+      } else {
+        accessModalTitle.textContent = "Re-enable this user?";
+        accessModalMsg.textContent = `Restore sign-in for ${user.email}.`;
+        accessConfirmBtn.textContent = "Re-enable user";
+        accessConfirmBtn.classList.add("confirm-modal__btn--primary");
+      }
+      accessConfirmBtn.disabled = false;
+      accessModal.classList.add("confirm-modal--open");
+      refreshBodyModalLock();
+    }
+
     function openDeleteModal(uploadId) {
+      closeUserProfileModal();
+      closeUserResetPasswordModal();
+      closeUserChangeRoleModal();
+      closeAccessModal();
       pendingDeleteId = uploadId;
       deleteConfirmBtn.disabled = false;
       deleteConfirmBtn.textContent = "Delete";
       deleteModal.classList.add("confirm-modal--open");
-      document.body.style.overflow = "hidden";
+      refreshBodyModalLock();
     }
 
     function closeDeleteModal() {
       deleteModal.classList.remove("confirm-modal--open");
-      document.body.style.overflow = "";
       pendingDeleteId = null;
+      refreshBodyModalLock();
     }
 
     deleteCancelBtn.addEventListener("click", closeDeleteModal);
     deleteModal.addEventListener("click", (e) => {
       if (e.target === deleteModal) closeDeleteModal();
     });
+    accessCancelBtn?.addEventListener("click", closeAccessModal);
+    accessModal?.addEventListener("click", (e) => {
+      if (e.target === accessModal) closeAccessModal();
+    });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && deleteModal.classList.contains("confirm-modal--open")) closeDeleteModal();
+      if (e.key !== "Escape") return;
+      if (userChangeRoleModal?.classList.contains("user-uploads-modal--open")) {
+        closeUserChangeRoleModal();
+        return;
+      }
+      if (userResetPassModal?.classList.contains("user-uploads-modal--open")) {
+        closeUserResetPasswordModal();
+        return;
+      }
+      if (userProfileModal?.classList.contains("user-uploads-modal--open")) {
+        closeUserProfileModal();
+        return;
+      }
+      if (userUploadsModal?.classList.contains("user-uploads-modal--open")) {
+        closeUserUploadsModal();
+        return;
+      }
+      if (accessModal?.classList.contains("confirm-modal--open")) {
+        closeAccessModal();
+        return;
+      }
+      if (deleteModal.classList.contains("confirm-modal--open")) closeDeleteModal();
     });
 
     deleteConfirmBtn.addEventListener("click", async () => {
@@ -2062,11 +2948,454 @@
       }
     });
 
+    accessConfirmBtn?.addEventListener("click", async () => {
+      if (!pendingAccess) return;
+      const { act, user } = pendingAccess;
+      const label = accessConfirmBtn.textContent;
+      accessConfirmBtn.disabled = true;
+      accessConfirmBtn.textContent = "Please wait…";
+      try {
+        let res;
+        if (act === "disable") {
+          res = await apiFetch(`/api/admin/users/${user.id}/disable`, { method: "POST" });
+        } else if (act === "enable") {
+          res = await apiFetch(`/api/admin/users/${user.id}/enable`, { method: "POST" });
+        } else {
+          res = await apiFetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+        }
+        if (!res) return;
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast(formatApiDetail(body) || "Request failed", "error");
+          return;
+        }
+        if (act === "delete") {
+          showToast("User permanently removed");
+          allUploadsData = allUploadsData.filter((d) => d.user_id !== user.id);
+          refreshAllUploadsUserOptions(allUploadsData);
+          renderAllUploads(allUploadsData);
+        } else if (act === "disable") {
+          showToast("User disabled — they can no longer sign in");
+        } else {
+          showToast("User re-enabled");
+        }
+        closeAccessModal();
+        await loadUsers();
+        await loadStats();
+      } catch (err) {
+        console.error(err);
+        showToast(err?.message || "Request failed", "error");
+      } finally {
+        accessConfirmBtn.disabled = false;
+        accessConfirmBtn.textContent = label;
+      }
+    });
+
+    const userProfileModal = document.getElementById("userProfileModal");
+    const userProfileBody = document.getElementById("userProfileBody");
+    const userProfileMeta = document.getElementById("userProfileMeta");
+    const userProfileClose = document.getElementById("userProfileClose");
+
+    const userResetPassModal = document.getElementById("userResetPassModal");
+    const userResetPassMeta = document.getElementById("userResetPassMeta");
+    const userResetPassNew = document.getElementById("userResetPassNew");
+    const userResetPassConfirm = document.getElementById("userResetPassConfirm");
+    const userResetPassClose = document.getElementById("userResetPassClose");
+    const userResetPassCancel = document.getElementById("userResetPassCancel");
+    const userResetPassSubmit = document.getElementById("userResetPassSubmit");
+    let pendingResetUser = null;
+
+    const userChangeRoleModal = document.getElementById("userChangeRoleModal");
+    const userChangeRoleMeta = document.getElementById("userChangeRoleMeta");
+    const userChangeRoleOptions = document.getElementById("userChangeRoleOptions");
+    const userChangeRoleClose = document.getElementById("userChangeRoleClose");
+    const userChangeRoleCancel = document.getElementById("userChangeRoleCancel");
+    const userChangeRoleSubmit = document.getElementById("userChangeRoleSubmit");
+    let pendingRoleUser = null;
+
+    function profileFieldVal(v) {
+      if (v === null || v === undefined || v === "") return "—";
+      return escapeHtml(String(v));
+    }
+
+    function openUserProfileModal(userId) {
+      closeAccessModal();
+      closeDeleteModal();
+      closeAllUserKebabMenus();
+      userProfileMeta.textContent = "Loading…";
+      userProfileBody.innerHTML = `<div class="user-uploads-state">Loading profile…</div>`;
+      userProfileModal?.classList.add("user-uploads-modal--open");
+      refreshBodyModalLock();
+      apiFetch(`/api/admin/users/${userId}`)
+        .then((res) => (res ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+          userProfileMeta.textContent = `${data.email} · ${data.role === "admin" ? "Administrator" : "Member"}`;
+          const rows = [
+            ["Full name", data.name],
+            ["Email", data.email],
+            ["Role", data.role === "admin" ? "Administrator" : "Standard user"],
+            ["Status", data.is_disabled ? "Disabled" : "Active"],
+            ["Mobile", data.mobile],
+            ["Gender", data.gender],
+            ["Age", data.age],
+            ["Site", data.site],
+            ["Location", data.location],
+            ["Member since", new Date(data.created_at).toLocaleString()],
+          ];
+          userProfileBody.innerHTML = `<dl class="admin-profile-grid">${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${profileFieldVal(v)}</dd>`).join("")}</dl>`;
+        })
+        .catch(() => {
+          userProfileBody.innerHTML = `<div class="user-uploads-state">Could not load profile.</div>`;
+        });
+    }
+
+    function closeUserProfileModal() {
+      userProfileModal?.classList.remove("user-uploads-modal--open");
+      refreshBodyModalLock();
+    }
+
+    userProfileClose?.addEventListener("click", closeUserProfileModal);
+    userProfileModal?.addEventListener("click", (e) => {
+      if (e.target === userProfileModal) closeUserProfileModal();
+    });
+
+    function openUserResetPasswordModal(u) {
+      pendingResetUser = u;
+      closeAccessModal();
+      userResetPassMeta.textContent = u.email;
+      userResetPassNew.value = "";
+      userResetPassConfirm.value = "";
+      userResetPassModal?.classList.add("user-uploads-modal--open");
+      refreshBodyModalLock();
+      setTimeout(() => userResetPassNew.focus(), 120);
+    }
+
+    function closeUserResetPasswordModal() {
+      userResetPassModal?.classList.remove("user-uploads-modal--open");
+      pendingResetUser = null;
+      refreshBodyModalLock();
+    }
+
+    userResetPassClose?.addEventListener("click", closeUserResetPasswordModal);
+    userResetPassCancel?.addEventListener("click", closeUserResetPasswordModal);
+    userResetPassModal?.addEventListener("click", (e) => {
+      if (e.target === userResetPassModal) closeUserResetPasswordModal();
+    });
+
+    userResetPassSubmit?.addEventListener("click", async () => {
+      if (!pendingResetUser) return;
+      const a = userResetPassNew.value;
+      const b = userResetPassConfirm.value;
+      if (a.length < 8) {
+        showToast("Password must be at least 8 characters", "error");
+        return;
+      }
+      if (a !== b) {
+        showToast("Passwords do not match", "error");
+        return;
+      }
+      userResetPassSubmit.disabled = true;
+      try {
+        const res = await apiFetch(`/api/admin/users/${pendingResetUser.id}/reset-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ new_password: a }),
+        });
+        if (!res) return;
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast(formatApiDetail(body) || "Request failed", "error");
+          return;
+        }
+        showToast("Password updated successfully");
+        closeUserResetPasswordModal();
+        await loadLogs(
+          document.getElementById("dateFrom").value,
+          document.getElementById("dateTo").value,
+        );
+      } finally {
+        userResetPassSubmit.disabled = false;
+      }
+    });
+
+    function openUserChangeRoleModal(u) {
+      pendingRoleUser = u;
+      closeAccessModal();
+      userChangeRoleMeta.textContent = u.email;
+      const cur = u.role === "admin" ? "admin" : "user";
+      userChangeRoleOptions.innerHTML = `
+        <label class="admin-role-option">
+          <input type="radio" name="admin-role-pick" value="user" ${cur === "user" ? "checked" : ""} />
+          <div><strong>Standard user</strong><span>Inspection uploads and user portal access.</span></div>
+        </label>
+        <label class="admin-role-option">
+          <input type="radio" name="admin-role-pick" value="admin" ${cur === "admin" ? "checked" : ""} />
+          <div><strong>Administrator</strong><span>Full admin dashboard and user management.</span></div>
+        </label>`;
+      userChangeRoleModal?.classList.add("user-uploads-modal--open");
+      refreshBodyModalLock();
+    }
+
+    function closeUserChangeRoleModal() {
+      userChangeRoleModal?.classList.remove("user-uploads-modal--open");
+      pendingRoleUser = null;
+      refreshBodyModalLock();
+    }
+
+    userChangeRoleClose?.addEventListener("click", closeUserChangeRoleModal);
+    userChangeRoleCancel?.addEventListener("click", closeUserChangeRoleModal);
+    userChangeRoleModal?.addEventListener("click", (e) => {
+      if (e.target === userChangeRoleModal) closeUserChangeRoleModal();
+    });
+
+    userChangeRoleSubmit?.addEventListener("click", async () => {
+      if (!pendingRoleUser) return;
+      const picked = userChangeRoleOptions.querySelector('input[name="admin-role-pick"]:checked');
+      if (!picked) return;
+      const newRole = picked.value;
+      if (newRole === pendingRoleUser.role) {
+        closeUserChangeRoleModal();
+        return;
+      }
+      userChangeRoleSubmit.disabled = true;
+      try {
+        const res = await apiFetch(`/api/admin/users/${pendingRoleUser.id}/role`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: newRole }),
+        });
+        if (!res) return;
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast(formatApiDetail(body) || "Request failed", "error");
+          return;
+        }
+        showToast("Role updated");
+        closeUserChangeRoleModal();
+        await loadUsers();
+        await loadStats();
+        await loadLogs(
+          document.getElementById("dateFrom").value,
+          document.getElementById("dateTo").value,
+        );
+      } finally {
+        userChangeRoleSubmit.disabled = false;
+      }
+    });
+
+    let activeUserCardMenuAnchor = null;
+
+    function clearUserDropdownLayout(panel) {
+      if (!panel) return;
+      panel.removeAttribute("style");
+      panel.classList.remove("user-card__dropdown--fixed", "user-card__dropdown--drop-up");
+    }
+
+    /** Viewport-fixed menu so sibling user cards cannot paint over the dropdown. */
+    function positionUserDropdown(anchorEl) {
+      const panel = anchorEl?.querySelector(".user-card__dropdown");
+      if (!panel?.classList.contains("is-open")) return;
+
+      const btn = anchorEl.querySelector(".user-card__kebab");
+      const ar = (btn || anchorEl).getBoundingClientRect();
+      const margin = 10;
+      const gutter = 8;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      panel.classList.add("user-card__dropdown--fixed");
+      panel.style.position = "fixed";
+      panel.style.zIndex = "10550";
+      panel.style.visibility = "hidden";
+      panel.style.opacity = "0";
+      panel.style.right = "";
+      panel.style.bottom = "";
+
+      void panel.offsetHeight;
+
+      let mw = panel.getBoundingClientRect().width || 220;
+      mw = Math.min(Math.max(mw, 220), Math.min(260, vw - 2 * margin));
+      panel.style.width = `${Math.round(mw)}px`;
+
+      void panel.offsetHeight;
+      let mh = panel.getBoundingClientRect().height;
+      const estFallback = 280;
+      if (!mh || mh < 40) mh = estFallback;
+
+      let left = ar.right - mw;
+      left = Math.max(margin, Math.min(Math.round(left), vw - margin - mw));
+
+      const spaceBelow = vh - ar.bottom - margin - gutter;
+      const spaceAbove = ar.top - margin - gutter;
+      let top;
+      let placeUp = false;
+
+      if (mh + gutter <= spaceBelow || (spaceBelow >= spaceAbove && mh + gutter <= spaceBelow + margin)) {
+        top = Math.round(ar.bottom + gutter);
+        placeUp = false;
+        if (top + mh > vh - margin) {
+          const maxH = Math.max(120, vh - top - margin);
+          panel.style.maxHeight = `${maxH}px`;
+          panel.style.overflowY = "auto";
+          void panel.offsetHeight;
+          mh = panel.getBoundingClientRect().height || mh;
+          if (top + mh > vh - margin) top = Math.round(vh - margin - mh);
+        }
+      } else if (mh + gutter <= spaceAbove) {
+        top = Math.round(ar.top - gutter - mh);
+        placeUp = true;
+        if (top < margin) top = margin;
+      } else if (spaceAbove > spaceBelow) {
+        panel.style.maxHeight = `${Math.max(120, spaceAbove)}px`;
+        panel.style.overflowY = "auto";
+        void panel.offsetHeight;
+        mh = panel.getBoundingClientRect().height;
+        top = Math.round(ar.top - gutter - mh);
+        placeUp = true;
+        if (top < margin) top = margin;
+      } else {
+        top = Math.round(ar.bottom + gutter);
+        placeUp = false;
+        panel.style.maxHeight = `${Math.max(120, spaceBelow)}px`;
+        panel.style.overflowY = "auto";
+        void panel.offsetHeight;
+        mh = panel.getBoundingClientRect().height;
+        if (top + mh > vh - margin) top = Math.max(margin, vh - margin - mh);
+      }
+
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+      panel.classList.toggle("user-card__dropdown--drop-up", placeUp);
+
+      panel.style.visibility = "visible";
+      panel.style.opacity = "1";
+
+      activeUserCardMenuAnchor = anchorEl;
+
+      requestAnimationFrame(() => {
+        if (!anchorEl.contains(panel) || !panel.classList.contains("is-open")) return;
+        const r = panel.getBoundingClientRect();
+        let lx = parseFloat(panel.style.left) || r.left;
+        let ty = parseFloat(panel.style.top) || r.top;
+        if (r.right > vw - margin) lx = vw - margin - r.width;
+        if (r.left < margin) lx = margin;
+        if (r.bottom > vh - margin) ty = Math.max(margin, vh - margin - r.height);
+        if (r.top < margin) ty = margin;
+        panel.style.left = `${Math.round(lx)}px`;
+        panel.style.top = `${Math.round(ty)}px`;
+      });
+    }
+
+    function repositionOpenUserDropdown() {
+      if (activeUserCardMenuAnchor) positionUserDropdown(activeUserCardMenuAnchor);
+    }
+
+    function closeAllUserKebabMenus() {
+      const ug = document.getElementById("usersGrid");
+      activeUserCardMenuAnchor = null;
+      if (!ug) return;
+      ug.querySelectorAll(".user-card--menu-open").forEach((card) => card.classList.remove("user-card--menu-open"));
+      ug.querySelectorAll(".user-card__dropdown").forEach((panel) => {
+        clearUserDropdownLayout(panel);
+        panel.classList.remove("is-open");
+      });
+      ug.querySelectorAll(".user-card__kebab").forEach((b) => b.setAttribute("aria-expanded", "false"));
+    }
+
+    window.addEventListener("resize", repositionOpenUserDropdown, { passive: true });
+    document.addEventListener("scroll", repositionOpenUserDropdown, { passive: true, capture: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", repositionOpenUserDropdown, { passive: true });
+      window.visualViewport.addEventListener("scroll", repositionOpenUserDropdown, { passive: true });
+    }
+
+    document.getElementById("usersGrid").addEventListener("click", (e) => {
+      const opt = e.target.closest(".user-card__dropdown-item");
+      if (opt) {
+        e.stopPropagation();
+        closeAllUserKebabMenus();
+        const uid = opt.dataset.uid;
+        const act = opt.dataset.act;
+        const u = allUsersData.find((row) => row.id === uid);
+        if (!u || !act) return;
+        if (act === "profile") {
+          openUserProfileModal(u.id);
+          return;
+        }
+        if (act === "uploads") {
+          loadUserUploadsModal(u.id, u.email, displayUserName(u));
+          return;
+        }
+        if (act === "reset") {
+          openUserResetPasswordModal(u);
+          return;
+        }
+        if (act === "role") {
+          openUserChangeRoleModal(u);
+          return;
+        }
+        if (act === "disable" || act === "enable" || act === "delete") {
+          openAccessConfirm(act, u);
+        }
+        return;
+      }
+      const btn = e.target.closest(".user-card__kebab");
+      if (btn) {
+        e.stopPropagation();
+        const anchor = btn.closest(".user-card__menu-anchor");
+        const panel = anchor?.querySelector(".user-card__dropdown");
+        if (!panel) return;
+        const wasOpen = panel.classList.contains("is-open");
+        closeAllUserKebabMenus();
+        if (!wasOpen) {
+          panel.classList.add("is-open");
+          btn.setAttribute("aria-expanded", "true");
+          anchor.closest(".user-card")?.classList.add("user-card--menu-open");
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => positionUserDropdown(anchor));
+          });
+        }
+      }
+    });
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".user-card__menu-anchor")) return;
+      closeAllUserKebabMenus();
+    });
+
     function wireDeleteButtons(container) {
-      container.querySelectorAll(".upload-item__delete").forEach((btn) => {
+      container.querySelectorAll("[data-id]").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           openDeleteModal(btn.dataset.id);
+        });
+      });
+    }
+
+    function wireUploadActions(container) {
+      container.querySelectorAll("[data-view]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.view;
+          const item = allUploadsData.find((x) => x.id === id);
+          if (!item) return;
+          openLightbox(`/${item.image_path}`, `${item.tower} · Floor ${item.floor} · Flat ${item.flat}\n${item.room}`);
+        });
+      });
+      container.querySelectorAll("[data-edit]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.edit;
+          const item = allUploadsData.find((x) => x.id === id);
+          if (!item) return;
+          loadUserUploadsModal(item.user_id, item.email || "", displayUserName(item));
+        });
+      });
+      container.querySelectorAll("[data-flag]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.flag;
+          if (!id) return;
+          if (flaggedUploadIds.has(id)) flaggedUploadIds.delete(id);
+          else flaggedUploadIds.add(id);
+          renderAllUploads(allUploadsData);
         });
       });
     }
@@ -2083,45 +3412,201 @@
       });
     }
 
-    const allUploadsSortBtn = document.getElementById("allUploadsSortBtn");
-    const allUploadsSortPanel = document.getElementById("allUploadsSortPanel");
     const allUploadsDayFilter = document.getElementById("allUploadsDayFilter");
     const allUploadsUserFilter = document.getElementById("allUploadsUserFilter");
-    const allUploadsSortApply = document.getElementById("allUploadsSortApply");
+    const allUploadsDateFrom = document.getElementById("allUploadsDateFrom");
+    const allUploadsDateTo = document.getElementById("allUploadsDateTo");
+    const allUploadsDateFromWrap = document.getElementById("allUploadsDateFromWrap");
+    const allUploadsDateToWrap = document.getElementById("allUploadsDateToWrap");
+    const allUploadsSortOrder = document.getElementById("allUploadsSortOrder");
     const allUploadsSortClear = document.getElementById("allUploadsSortClear");
-
-    function closeAllUploadsSortPanel() {
-      allUploadsSortPanel.classList.remove("open");
-      allUploadsSortBtn.classList.remove("active");
-      allUploadsSortBtn.setAttribute("aria-expanded", "false");
+    function syncCustomDateVisibility() {
+      const isCustom = allUploadsDayFilter?.value === "custom";
+      if (allUploadsDateFromWrap) allUploadsDateFromWrap.style.display = isCustom ? "" : "none";
+      if (allUploadsDateToWrap) allUploadsDateToWrap.style.display = isCustom ? "" : "none";
     }
-    function openAllUploadsSortPanel() {
-      allUploadsSortPanel.classList.add("open");
-      allUploadsSortBtn.classList.add("active");
-      allUploadsSortBtn.setAttribute("aria-expanded", "true");
-    }
-
-    allUploadsSortBtn.addEventListener("click", () => {
-      if (allUploadsSortPanel.classList.contains("open")) closeAllUploadsSortPanel();
-      else openAllUploadsSortPanel();
-    });
-    allUploadsSortApply.addEventListener("click", () => {
-      allUploadsFilters.day = allUploadsDayFilter.value;
-      allUploadsFilters.user = allUploadsUserFilter.value;
+    function applyAllUploadsFiltersFromUi() {
+      allUploadsFilters.day = allUploadsDayFilter?.value || "all";
+      allUploadsFilters.user = allUploadsUserFilter?.value || "all";
+      allUploadsFilters.dateFrom = allUploadsDateFrom?.value || "";
+      allUploadsFilters.dateTo = allUploadsDateTo?.value || "";
+      allUploadsFilters.sortOrder = allUploadsSortOrder?.value || "newest";
+      syncCustomDateVisibility();
       renderAllUploads(allUploadsData);
-      closeAllUploadsSortPanel();
-    });
+    }
+    [allUploadsDayFilter, allUploadsUserFilter, allUploadsDateFrom, allUploadsDateTo, allUploadsSortOrder]
+      .forEach((el) => el?.addEventListener("change", applyAllUploadsFiltersFromUi));
     allUploadsSortClear.addEventListener("click", () => {
-      allUploadsFilters = { day: "all", user: "all" };
+      allUploadsFilters = { day: "all", user: "all", dateFrom: "", dateTo: "", sortOrder: "newest" };
       allUploadsDayFilter.value = "all";
       allUploadsUserFilter.value = "all";
+      if (allUploadsDateFrom) allUploadsDateFrom.value = "";
+      if (allUploadsDateTo) allUploadsDateTo.value = "";
+      allUploadsSortOrder.value = "newest";
+      syncCustomDateVisibility();
       renderAllUploads(allUploadsData);
-      closeAllUploadsSortPanel();
     });
-    document.addEventListener("click", (e) => {
-      if (!allUploadsSortPanel.contains(e.target) && !allUploadsSortBtn.contains(e.target)) {
-        closeAllUploadsSortPanel();
+    syncCustomDateVisibility();
+
+    const reportDateFrom = document.getElementById("reportDateFrom");
+    const reportDateTo = document.getElementById("reportDateTo");
+    const reportUser = document.getElementById("reportUser");
+    const reportDayFilter = document.getElementById("reportDayFilter");
+    const reportImageCount = document.getElementById("reportImageCount");
+    const reportPreviewModal = document.getElementById("reportPreviewModal");
+    const reportPreviewClose = document.getElementById("reportPreviewClose");
+    const reportPreviewMeta = document.getElementById("reportPreviewMeta");
+    const reportPreviewGrid = document.getElementById("reportPreviewGrid");
+    const reportPreviewEmpty = document.getElementById("reportPreviewEmpty");
+    const reportGenerateWrap = document.getElementById("reportGenerateWrap");
+    let reportUsersLoaded = false;
+    let reportUploadsData = [];
+
+    function syncReportCustomDateVisibility() {
+      const custom = reportDayFilter?.value === "custom";
+      const fromWrap = reportDateFrom?.closest(".form-group");
+      const toWrap = reportDateTo?.closest(".form-group");
+      if (fromWrap) fromWrap.style.display = custom ? "" : "none";
+      if (toWrap) toWrap.style.display = custom ? "" : "none";
+      if (!custom) {
+        if (reportDateFrom) reportDateFrom.value = "";
+        if (reportDateTo) reportDateTo.value = "";
       }
+    }
+
+    function updateReportGenerateVisibility() {
+      const custom = reportDayFilter?.value === "custom";
+      const hasDates = custom ? !!(reportDateFrom?.value && reportDateTo?.value) : true;
+      const ready = !!(reportUser?.value && hasDates);
+      reportGenerateWrap.style.display = ready ? "block" : "none";
+    }
+
+    function getReportFilteredUploads() {
+      const day = reportDayFilter?.value || "all";
+      const user = reportUser?.value || "";
+      if (!user) return [];
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const fromDate = parseDateInputStart(reportDateFrom?.value || "");
+      const toDate = parseDateInputEnd(reportDateTo?.value || "");
+
+      return reportUploadsData.filter((d) => {
+        const dt = new Date(d.created_at);
+        if (isNaN(dt.getTime())) return false;
+        if (user !== "all" && (d.email || "") !== user) return false;
+        if (day === "today" && !isSameDate(dt, today)) return false;
+        if (day === "yesterday" && !isSameDate(dt, yesterday)) return false;
+        if (day === "last7") {
+          const sevenDaysAgo = new Date(today);
+          sevenDaysAgo.setDate(today.getDate() - 6);
+          if (dt < sevenDaysAgo) return false;
+        }
+        if (day === "custom") {
+          if (fromDate && dt < fromDate) return false;
+          if (toDate && dt > toDate) return false;
+        }
+        return true;
+      });
+    }
+
+    function updateReportImageCount() {
+      if (!reportImageCount) return;
+      const user = reportUser?.value || "";
+      if (!user) {
+        reportImageCount.style.display = "none";
+        reportImageCount.textContent = "";
+        return;
+      }
+      const count = getReportFilteredUploads().length;
+      reportImageCount.style.display = "block";
+      reportImageCount.textContent = `${count} image${count !== 1 ? "s" : ""} found for selected filters`;
+    }
+
+    function openReportPreviewModal() {
+      if (!reportPreviewModal) return;
+      reportPreviewModal.classList.add("user-uploads-modal--open");
+      refreshBodyModalLock();
+    }
+
+    function closeReportPreviewModal() {
+      if (!reportPreviewModal) return;
+      reportPreviewModal.classList.remove("user-uploads-modal--open");
+      refreshBodyModalLock();
+    }
+
+    function renderReportPreviewGrid() {
+      if (!reportPreviewGrid || !reportPreviewEmpty) return;
+      const user = reportUser?.value || "";
+      const custom = reportDayFilter?.value === "custom";
+      const hasDates = custom ? !!(reportDateFrom?.value && reportDateTo?.value) : true;
+      if (!user || !hasDates) {
+        reportPreviewGrid.innerHTML = "";
+        reportPreviewEmpty.style.display = "none";
+        closeReportPreviewModal();
+        return;
+      }
+
+      const filtered = getReportFilteredUploads();
+      if (reportPreviewMeta) {
+        reportPreviewMeta.textContent = `${filtered.length} image${filtered.length !== 1 ? "s" : ""} match the selected filters`;
+      }
+      reportPreviewGrid.innerHTML = filtered.map((item) => `
+        <div class="report-preview-item">
+          <img src="/${item.image_path}" alt="Report preview image" loading="lazy" />
+        </div>
+      `).join("");
+      reportPreviewEmpty.style.display = filtered.length === 0 ? "block" : "none";
+      wireReportPreviewLightbox(reportPreviewGrid);
+      openReportPreviewModal();
+    }
+
+    async function initReportTab() {
+      if (!reportUsersLoaded) {
+        try {
+          const res = await apiFetch("/api/admin/uploads");
+          if (res) {
+            const raw = await res.json();
+            reportUploadsData = raw.filter((d) => !String(d.image_path || "").startsWith("missing/"));
+            const users = Array.from(new Map(
+              reportUploadsData
+                .filter((d) => d.email)
+                .map((d) => [d.email, { email: d.email, name: displayUserName(d) }]),
+            ).values()).sort((a, b) => a.name.localeCompare(b.name));
+            reportUser.innerHTML = `<option value="">Select user</option><option value="all">All users</option>${
+              users.map((u) => `<option value="${u.email}">${u.name}</option>`).join("")
+            }`;
+            reportUser.value = "";
+          }
+        } catch (e) {
+          console.error("Failed to load report users:", e);
+        }
+        reportUsersLoaded = true;
+      }
+      syncReportCustomDateVisibility();
+      updateReportGenerateVisibility();
+      updateReportImageCount();
+      renderReportPreviewGrid();
+    }
+
+    [reportDayFilter, reportDateFrom, reportDateTo, reportUser].forEach((el) => {
+      el?.addEventListener("change", () => {
+        updateReportGenerateVisibility();
+        updateReportImageCount();
+        renderReportPreviewGrid();
+      });
+    });
+    reportDayFilter?.addEventListener("change", () => {
+      syncReportCustomDateVisibility();
+      updateReportImageCount();
+      renderReportPreviewGrid();
+    });
+    reportImageCount?.addEventListener("click", () => {
+      renderReportPreviewGrid();
+    });
+    reportPreviewClose?.addEventListener("click", closeReportPreviewModal);
+    reportPreviewModal?.addEventListener("click", (e) => {
+      if (e.target === reportPreviewModal) closeReportPreviewModal();
     });
 
     /* ═══════════════════════════════════════════════
@@ -2135,12 +3620,12 @@
 
     function openUserUploadsModal() {
       userUploadsModal.classList.add("user-uploads-modal--open");
-      document.body.style.overflow = "hidden";
+      refreshBodyModalLock();
     }
 
     function closeUserUploadsModal() {
       userUploadsModal.classList.remove("user-uploads-modal--open");
-      document.body.style.overflow = "";
+      refreshBodyModalLock();
     }
 
     function userUploadsSkeleton() {
@@ -2156,13 +3641,9 @@
     userUploadsModal.addEventListener("click", (e) => {
       if (e.target === userUploadsModal) closeUserUploadsModal();
     });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && userUploadsModal.classList.contains("user-uploads-modal--open")) {
-        closeUserUploadsModal();
-      }
-    });
 
     async function loadUserUploadsModal(userId, email, name) {
+      closeAllUserKebabMenus();
       const displayName = name || displayUserName({ email, name });
       userUploadsTitle.textContent = "User uploads";
       userUploadsMeta.textContent = `${displayName} · ${email}`;
@@ -2203,7 +3684,10 @@
     /* ═══════════════════════════════════════════════
        Logs (with new-row animation)
        ═══════════════════════════════════════════════ */
-    async function loadLogs(dateFrom, dateTo) {
+    async function loadLogs(dateFrom, dateTo, opts = {}) {
+      const silent = !!opts.silent;
+      if (silent && (dateFrom || dateTo)) return;
+
       const params = new URLSearchParams();
       if (dateFrom) params.set("date_from", dateFrom);
       if (dateTo) params.set("date_to", dateTo);
@@ -2213,6 +3697,10 @@
         const res = await apiFetch(`/api/admin/logs${qs ? "?" + qs : ""}`);
         if (!res) return;
         const logs = await res.json();
+
+        const syncKey = `${dateFrom || ""}\x1e${dateTo || ""}\x1e${logs.map((l) => l.id).join(",")}`;
+        if (silent && syncKey === lastLogsSyncKey) return;
+
         const tbody = document.getElementById("logsBody");
         const empty = document.getElementById("logsEmpty");
 
@@ -2220,6 +3708,7 @@
           tbody.innerHTML = "";
           empty.style.display = "block";
           prevLogIds = new Set();
+          lastLogsSyncKey = syncKey;
           return;
         }
         empty.style.display = "none";
@@ -2233,14 +3722,17 @@
             return `
           <tr class="${isNew ? "row-new" : ""}">
             <td>${label}${l.email ? ` <span style="color:#94a3b8;font-size:.75rem">(${l.email})</span>` : ""}</td>
-            <td><span class="badge badge-${l.action}">${l.action}</span></td>
+            <td><span class="log-action">${formatAdminLogAction(l)}</span></td>
             <td>${new Date(l.timestamp).toLocaleString()}</td>
           </tr>`;
           })
           .join("");
 
         prevLogIds = currentIds;
-      } catch (err) { console.error("Failed to load logs:", err); }
+        lastLogsSyncKey = syncKey;
+      } catch (err) {
+        console.error("Failed to load logs:", err);
+      }
     }
 
     document.getElementById("filterLogsBtn").addEventListener("click", () => {
@@ -2257,53 +3749,59 @@
     });
 
     /* ═══════════════════════════════════════════════
-       Live polling engine
+       Background sync — staggered timers, silent/no-op when unchanged
        ═══════════════════════════════════════════════ */
     function activeTabName() {
       return document.querySelector(".tab-btn.active")?.dataset?.tab || "all-uploads";
     }
 
-    async function pollAll() {
-      // Keep auto-refresh lightweight to avoid "page refreshing" feel.
-      await loadStats();
+    function syncStatsBackground() {
+      loadStats({ silent: true });
+    }
 
-      // Refresh only currently visible tab content.
+    function syncVisibleTabBackground() {
       const active = activeTabName();
-      if (active === "users") {
-        await loadUsers();
-        return;
-      }
-      if (active === "logs") {
-        await loadLogs(
+      if (active === "users") loadUsers({ silent: true });
+      else if (active === "logs") {
+        loadLogs(
           document.getElementById("dateFrom").value,
           document.getElementById("dateTo").value,
+          { silent: true },
         );
       }
     }
 
-    // Initial load
-    pollAll();
-    loadAllUploads();
+    function startBackgroundSync() {
+      if (statsBgTimer) return;
+      statsBgTimer = setInterval(syncStatsBackground, STATS_BG_SYNC_MS);
+      tabBgTimer = setInterval(syncVisibleTabBackground, TAB_BG_SYNC_MS);
+    }
 
-    // Poll every 5 seconds — pause when tab is hidden to save resources
-    let pollTimer = null;
-    function startPolling() {
-      if (pollTimer) return;
-      pollTimer = setInterval(pollAll, POLL_INTERVAL);
+    function stopBackgroundSync() {
+      if (statsBgTimer) {
+        clearInterval(statsBgTimer);
+        statsBgTimer = null;
+      }
+      if (tabBgTimer) {
+        clearInterval(tabBgTimer);
+        tabBgTimer = null;
+      }
     }
-    function stopPolling() {
-      if (!pollTimer) return;
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
-    startPolling();
+
+    (async function bootstrapAdminDashboard() {
+      await loadStats();
+      await loadAllUploads();
+    })();
+
+    startBackgroundSync();
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        stopPolling();
+        stopBackgroundSync();
       } else {
-        pollAll();
-        startPolling();
+        syncStatsBackground();
+        syncVisibleTabBackground();
+        startBackgroundSync();
       }
     });
   </script>
